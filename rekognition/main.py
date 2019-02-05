@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import pprint as pp
 import Rekognition
 
