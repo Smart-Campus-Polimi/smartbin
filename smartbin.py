@@ -3,9 +3,9 @@ import RPi.GPIO as GPIO
 import sys
 import VL53L0X
 import DoorLed
-
+import time
 GPIO.setmode(GPIO.BCM)
-THRESHOLDTOF = 374
+THRESHOLD_TOF = 374
 
 #### GPIO PINS ####
 DOOR_SENSOR = 18
@@ -84,7 +84,6 @@ if __name__ == "__main__":
 		startUp = False
 		is_running = True
 		doorLed.turnOff()
-	
 	else:
 		print("ERROR STARTUP")
 		sys.exit()
@@ -94,10 +93,10 @@ if __name__ == "__main__":
 		distance2 = tof2.get_distance()
 
 		print(distance1, distance2)
-		if(distance1 < THRESHOLD or distance2 < THRESHOLD):
-        	print("oggetto")
-    	else:
-        	print("NO oggetto")
+		if(distance1 < THRESHOLD_TOF or distance2 < THRESHOLD_TOF):
+			print("oggetto")
+		else:
+			print("NO oggetto")
 
 	print("EOF!")
 	tof2.stop_ranging()
