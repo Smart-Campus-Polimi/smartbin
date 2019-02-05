@@ -15,6 +15,7 @@ void setup()
   Serial.println("Sto avviando...");
 
   led_door.begin();
+  led_door.setBrightness(10);
   testNeoPixel();
 }
 
@@ -26,15 +27,15 @@ void loop()
     door_status=Serial.read();
     
     switch(door_status){
-      case 49:
+      case 65:
           offCameraLight();
           break;
 
-      case 50:
+      case 66:
           onCameraLight();
           break;
 
-      case 51:
+      case 67:
           blinkCameraLight();
           break;
           
