@@ -89,14 +89,17 @@ if __name__ == "__main__":
 		sys.exit()
 
 	while is_running:
-		distance1 = tof1.get_distance()
-		distance2 = tof2.get_distance()
+		oldWasteIn = wasteIn
+		if(isOpen):
+			distance1 = tof1.get_distance()
+			distance2 = tof2.get_distance()
 
-		print(distance1, distance2)
-		if(distance1 < THRESHOLD_TOF or distance2 < THRESHOLD_TOF):
-			print("oggetto")
-		else:
-			print("NO oggetto")
+			print(distance1, distance2)
+			if(distance1 < THRESHOLD_TOF or distance2 < THRESHOLD_TOF):
+				print("oggetto inserito")
+				wasteIn = True
+		
+		
 
 	print("EOF!")
 	tof2.stop_ranging()
