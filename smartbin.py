@@ -2,10 +2,16 @@
 import RPi.GPIO as GPIO
 import sys
 import VL53L0X
-import DoorLed
 import time
+import threading
+
+import DoorLed
+
+
 GPIO.setmode(GPIO.BCM)
 THRESHOLD_TOF = 374
+TIMER_PHOTO = 5 #seconds
+TIMER_DOOR = 20 #seconds
 
 #### GPIO PINS ####
 DOOR_SENSOR = 18
@@ -20,6 +26,7 @@ is_running = False
 startUp = True
 wasteIn = False
 oldWasteIn = False
+photoDone = False
 
 ####### SETUP TOF #######
 def setupToF():
@@ -57,10 +64,22 @@ def door_callback(channel):
 
 	if(isOpen and not oldIsOpen):
 		doorLed.turnOn()
+		timer_door = threading.Timer(TIMER_DOOR, door_forgotten_open)
+		timer_door.start()
 	if(not isOpen and oldIsOpen):
 		doorLed.turnOff()
+		if(timer_door.is_alive()):
+			timer_door.cancel()
 
+def photo_ready():
+	#TODO photo
+	global photoDone
+	photoDone = True
+	print("Scatto foto da timer")
 
+def door_forgotten_open():
+	print("porta aprta da troppo tempo")
+	doorLed.blink()
 
 ##### DOOR SETUP #####
 GPIO.setup(DOOR_SENSOR, GPIO.IN, pull_up_down = GPIO.PUD_UP)
@@ -91,15 +110,33 @@ if __name__ == "__main__":
 	while is_running:
 		oldWasteIn = wasteIn
 		if(isOpen):
+			#TODO: create an array with last N values and check wether there are outliers
 			distance1 = tof1.get_distance()
 			distance2 = tof2.get_distance()
 
 			print(distance1, distance2)
+			
 			if(distance1 < THRESHOLD_TOF or distance2 < THRESHOLD_TOF):
-				print("oggetto inserito")
 				wasteIn = True
+				if (wasteIn and not oldWasteIn):
+					print("oggetto inserito")
+					photoDone = False
+					timer_pic = threading.Timer(TIMER_PHOTO, photo_ready)
+					timer_pic.start()
+
+		if(isClosed and wasteIn):
+			if(not photoDone):
+				print("scatta foto da chiusura porta")
+				timer_pic.cancel()
+				photoDone = True
+
+			if(photoDone):
+				#TODO photo
+				nextActions()
+			
+			
 		
-		
+				
 
 	print("EOF!")
 	tof2.stop_ranging()
@@ -107,3 +144,14 @@ if __name__ == "__main__":
 	tof1.stop_ranging()
 	GPIO.output(SENSOR1, GPIO.LOW)
 
+def nextActions():
+	time.sleep(1)
+	print("oggetto riconosciuto")
+	print("e' PLASTICA")
+	time.sleep(1)
+	print("aziono i motori")
+	time.sleep(2)
+	print("azione finita")
+	photoDone = False
+	wasteIn = False
+	oldWasteIn = False
