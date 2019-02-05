@@ -20,6 +20,7 @@ SENSOR2 = 16
 
 
 #### VARS ####
+timer_door = None
 isOpen = False
 oldIsOpen = False
 is_running = False
@@ -60,6 +61,8 @@ def setupToF():
 def door_callback(channel):
 	global isOpen
 	oldIsOpen = isOpen
+	global timer_door
+
 	isOpen = GPIO.input(DOOR_SENSOR)
 
 	if(isOpen and not oldIsOpen):
@@ -68,8 +71,23 @@ def door_callback(channel):
 		timer_door.start()
 	if(not isOpen and oldIsOpen):
 		doorLed.turnOff()
-		if(timer_door.is_alive()):
-			timer_door.cancel()
+		if(timer_door is not None):
+			if(timer_door.is_alive()):
+				timer_door.cancel()
+
+def nextActions():
+        time.sleep(1)
+        print("oggetto riconosciuto")
+        print("e' PLASTICA")
+        time.sleep(1)
+        print("aziono i motori")
+        time.sleep(2)
+        print("azione finita")
+	global photoDone, wasteIn, oldWasteIn
+        photoDone = False
+        wasteIn = False
+        oldWasteIn = False
+
 
 def photo_ready():
 	#TODO photo
@@ -79,7 +97,9 @@ def photo_ready():
 
 def door_forgotten_open():
 	print("porta aprta da troppo tempo")
-	doorLed.blink()
+	global isOpen
+	while(isOpen):
+		doorLed.blink()
 
 ##### DOOR SETUP #####
 GPIO.setup(DOOR_SENSOR, GPIO.IN, pull_up_down = GPIO.PUD_UP)
@@ -124,7 +144,7 @@ if __name__ == "__main__":
 					timer_pic = threading.Timer(TIMER_PHOTO, photo_ready)
 					timer_pic.start()
 
-		if(isClosed and wasteIn):
+		if(not isOpen and wasteIn):
 			if(not photoDone):
 				print("scatta foto da chiusura porta")
 				timer_pic.cancel()
@@ -143,15 +163,3 @@ if __name__ == "__main__":
 	GPIO.output(SENSOR2, GPIO.LOW)
 	tof1.stop_ranging()
 	GPIO.output(SENSOR1, GPIO.LOW)
-
-def nextActions():
-	time.sleep(1)
-	print("oggetto riconosciuto")
-	print("e' PLASTICA")
-	time.sleep(1)
-	print("aziono i motori")
-	time.sleep(2)
-	print("azione finita")
-	photoDone = False
-	wasteIn = False
-	oldWasteIn = False
