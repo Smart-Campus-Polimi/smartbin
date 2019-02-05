@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import RPi.GPIO as GPIO
 import sys
-
+import DoorLed
 
 GPIO.setmode(GPIO.BCM)
 
@@ -31,17 +31,19 @@ GPIO.add_event_detect(DOOR_SENSOR, GPIO.BOTH, callback=door_callback)
 
 if __name__ == "__main__":
 	doorLed = DoorLed.DoorLed()
-
-	isOpen = GPIO.input(DOOR_SENSOR)
+	doorLed.turnOff()
+	#isOpen = GPIO.input(DOOR_SENSOR)
 
 	while(isOpen):
+		#isOpen = GPIO.input(DOOR_SENSOR)
+		doorLed.blink()
 		if(startUp):
 			print("chiudi lo sportello per avviare lo smartbin")
-			doorLed.blink()
 			startUp = False
 
 	if(not isOpen):
 		print("avvio smartbin...")
+		startUp = False
 		is_running = True
 		doorLed.turnOff()
 	

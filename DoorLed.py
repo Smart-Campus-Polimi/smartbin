@@ -8,15 +8,15 @@ class DoorLed():
 		self.oldOpen = False
 
 	def turnOff(self):
-		self.ser.write('A')
+		self.ser.write(b'A')
 		print("spengo luci porta")
 
 	def turnOn(self):
-		self.ser.write('B')
+		self.ser.write(b'B')
 		print("accendo luci porta")
 
 	def blink(self):
-		self.ser.write('C')
+		self.ser.write(b'C')
 		print("lampeggio porta (errore)")
 
 
