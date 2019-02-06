@@ -8,9 +8,11 @@ class Rekognition():
 		def __init__(self,debug=False):
 			self.session = boto3.Session(profile_name='default')
 			self.rekognition = self.session.client('rekognition')
-			#self.imageFile = imageFile
 			self.debug = debug
-		
+			self.requestTime = 0
+			self.labelingTime = 0
+
+
 		def getLabels(self, imageFile):
 			count = 0
 			result = {
@@ -23,7 +25,13 @@ class Rekognition():
 					}
 
 			rekognition_response = self._sendRequest(imageFile)
+			self.labelingTime = time.time()
+
+			#TODO: drop labels
+
 			for label in rekognition_response['Labels']:
+				if label['Name'] in l.drop:
+					continue
 				count += 1
 				if label['Name'] in l.plastic:
 					result['PLASTIC'] += label['Confidence']
@@ -41,10 +49,11 @@ class Rekognition():
 				print(count)
 				pp.pprint(result)
 
+			self.labelingTime = time.time() - self.labelingTime
 			return max(zip(result.values(), result.keys()))[1]			
 
 		def _sendRequest(self, imageFile):
-			start_request = time.time()
+			self.requestTime = time.time()
 
 			with open(imageFile, 'rb') as image: 
 				rekognition_response = self.rekognition.detect_labels(
@@ -52,10 +61,20 @@ class Rekognition():
 							MaxLabels=10,
 							MinConfidence=50)
 
-				print("{0:.4f}".format(time.time() - start_request), "sec")
+				self.requestTime = time.time() - self.requestTime
 				
 			if(self.debug):
 				pp.pprint(rekognition_response)
 
 			return rekognition_response
+
+
+		def timeoutRecap(self, photoT):
+			print("\n")
+			print("-"*30)
+			print("Taking a picture: %f sec", "{0:.4f}".format(photoT))
+			print("Request to rekognition: %f sec", "{0:.4f}".format(self.requestTime))
+			print("Parsing response: %f sec", "{0:.4f}".format(self.labelingTime))
+
+				
 			

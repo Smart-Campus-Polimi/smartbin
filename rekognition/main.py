@@ -2,9 +2,18 @@
 import pprint as pp
 import Rekognition
 import subprocess
+import os
 
-imageFile = '/Users/drosdesd/Downloads/empty2.png'
-reko = Rekognition.Rekognition(True)
+
+DIRECTORY = '~/pictures/'
+WEBCAM = '~/smartbin/scripts/webcam.sh'
+
+RASP = False
+
+imagePath = '~/Downloads/empty3.png'
+waste = None
+photoTime = 0
+is_running = True
 
 def parseWaste(key):
 	if(key == '1'):
@@ -19,18 +28,29 @@ def parseWaste(key):
 		return 'UNSORTED'
 
 if __name__ == "__main__":
-	while(True):
+	reko = Rekognition.Rekognition(True)
+	while(is_running):
+		if(RASP):
+			waste = raw_input('picture?')
+			waste = parseWaste(waste)
+			photoTime = time.time()
+			file_name = subprocess.check_output(os.path.expanduser(WEBCAM))
+			file_name = os.path.expanduser(DIRECTORY)+str(file_name)[:-1]
+			photoTime = time.time() - photoTime
+		else: 
+			file_name = imagePath
 
-		waste = raw_input('picture?')
-		waste = parseWaste(waste)
-		file_name = subprocess.check_output('/home/pi/smartbin/scripts/webcam.sh')
-		file_name = '/home/pi/pictures/'+str(file_name)[:-1]
 		print file_name
-		waste_type = reko.getLabels(file_name)
+		waste_type = reko.getLabels(os.path.expanduser(file_name))
 		
-
 		if(waste_type != waste):
+			#cheat
 			print(waste)
 		else:
+			#true
 			print(waste_type)
+
+		reko.timeoutRecap(photoTime)
+		if(not RASP):
+			is_running = False
 
