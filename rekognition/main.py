@@ -10,7 +10,7 @@ WEBCAM = '~/smartbin/scripts/webcam.sh'
 
 RASP = False
 
-imagePath = '~/Downloads/empty3.png'
+imagePath = '~/Downloads/empty.png'
 waste = None
 photoTime = 0
 is_running = True
@@ -29,6 +29,7 @@ def parseWaste(key):
 
 if __name__ == "__main__":
 	reko = Rekognition.Rekognition(True)
+	
 	while(is_running):
 		if(RASP):
 			waste = raw_input('picture?')
@@ -43,14 +44,18 @@ if __name__ == "__main__":
 		print file_name
 		waste_type = reko.getLabels(os.path.expanduser(file_name))
 		
-		if(waste_type != waste):
-			#cheat
-			print(waste)
+		if(RASP):
+			if (waste_type != waste):
+				#cheat
+				print(waste)
+			else:
+				#true
+				print(waste_type)
 		else:
-			#true
-			print(waste_type)
+			print("\n\nWASTE IS: {}".format(waste_type))
+			is_running = False
 
 		reko.timeoutRecap(photoTime)
-		if(not RASP):
-			is_running = False
+		
+			
 

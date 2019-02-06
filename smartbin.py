@@ -10,9 +10,14 @@ import DoorLed
 
 
 GPIO.setmode(GPIO.BCM)
+
 THRESHOLD_TOF = 374
 TIMER_PHOTO = 5 #seconds
 TIMER_DOOR = 20 #seconds
+
+#### PATHS ####
+WEBCAM = '~/smartbin/scripts/webcam.sh'
+DIRECTORY = '~/pictures/'
 
 #### GPIO PINS ####
 DOOR_SENSOR = 18
@@ -77,12 +82,13 @@ def door_callback(channel):
 				timer_door.cancel()
 
 def takePicture():
-	path = subprocess.check_output('scripts/webcam.sh')
+	#TODO: handle errors
+	path = subprocess.check_output(os.path.expanduser(WEBCAM))
 
+	#TODO use pygame
 	global photoDone
 	photoDone = True
 
-	#TODO: parse path
 	return path
 
 
@@ -99,6 +105,7 @@ def handleWaste(imageFile):
 	wasteIn = False
 	oldWasteIn = False
 	my_photo = None
+	#TODO: open sportello
 
 
 def photo_ready():
@@ -140,6 +147,8 @@ if __name__ == "__main__":
 		print("ERROR STARTUP")
 		sys.exit()
 
+
+	#### START SMARTBIN ####
 	while is_running:
 		oldWasteIn = wasteIn
 		if(isOpen):
@@ -159,7 +168,7 @@ if __name__ == "__main__":
 
 		if(not isOpen and wasteIn):
 			if(not photoDone):
-				print("chiudo ilo sportello")
+				print("chiudo lo sportello")
 				#TODO: motore sportello
 				print("scatta foto da chiusura porta")
 				timer_pic.cancel()
@@ -168,7 +177,7 @@ if __name__ == "__main__":
 
 
 			if(photoDone):
-				#TODO photo
+				my_photo = os.path.expanduser(DIRECTORY)+str(my_photo)[:-1]
 				handleWaste(my_photo)
 			
 			

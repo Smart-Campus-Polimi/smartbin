@@ -21,33 +21,30 @@ class Rekognition():
 				"ALUMINIUM": 0,
 				"PAPER": 0,
 				"GLASS": 0, 
-				"NONE": 0
+				"EMPTY": 0
 					}
 
 			rekognition_response = self._sendRequest(imageFile)
 			self.labelingTime = time.time()
 
-			#TODO: drop labels
 
 			for label in rekognition_response['Labels']:
-				if label['Name'] in l.drop:
-					continue
-				count += 1
-				if label['Name'] in l.plastic:
-					result['PLASTIC'] += label['Confidence']
-				if label['Name'] in l.aluminium:
-					result['ALUMINIUM'] += label['Confidence']
-				if label['Name'] in l.paper:
-					result['PAPER'] += label['Confidence']
-				if label['Name'] in l.glass:
-					result['GLASS'] += label['Confidence']
+				if label['Name'] not in l.drop:
+					count += 1
+					if label['Name'] in l.plastic:
+						result['PLASTIC'] += label['Confidence']
+					if label['Name'] in l.aluminium:
+						result['ALUMINIUM'] += label['Confidence']
+					if label['Name'] in l.paper:
+						result['PAPER'] += label['Confidence']
+					if label['Name'] in l.glass:
+						result['GLASS'] += label['Confidence']
 			
 			if(count<2):
-				result['NONE'] = 100
+				result['EMPTY'] = 100
 
 			if(self.debug):
-				print(count)
-				pp.pprint(result)
+				print("Found {} labels".format(count))
 
 			self.labelingTime = time.time() - self.labelingTime
 			return max(zip(result.values(), result.keys()))[1]			
@@ -72,9 +69,9 @@ class Rekognition():
 		def timeoutRecap(self, photoT):
 			print("\n")
 			print("-"*30)
-			print("Taking a picture: %f sec", "{0:.4f}".format(photoT))
-			print("Request to rekognition: %f sec", "{0:.4f}".format(self.requestTime))
-			print("Parsing response: %f sec", "{0:.4f}".format(self.labelingTime))
+			print("Taking a picture: {0:.4f} s".format(photoT))
+			print("Request to rekognition: {0:.4f} s".format(self.requestTime))
+			print("Parsing response: {0:.4f} s".format(self.labelingTime))
 
 				
 			
