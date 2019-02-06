@@ -5,6 +5,7 @@ import VL53L0X
 import time
 import threading
 
+import Rekognition
 import DoorLed
 
 
@@ -75,25 +76,35 @@ def door_callback(channel):
 			if(timer_door.is_alive()):
 				timer_door.cancel()
 
-def nextActions():
-        time.sleep(1)
-        print("oggetto riconosciuto")
-        print("e' PLASTICA")
-        time.sleep(1)
-        print("aziono i motori")
-        time.sleep(2)
-        print("azione finita")
+def takePicture():
+	path = subprocess.check_output('scripts/webcam.sh')
+
+	global photoDone
+	photoDone = True
+
+	#TODO: parse path
+	return path
+
+
+def handleWaste(imageFile):
+	waste_type = reko.getLabels(imageFile)
+	print("oggetto riconosciuto, e':")
+	print(waste_type)
+	print("illumino led")
+	print("aziono i motori")
+	time.sleep(2)
+	print("azione finita")
 	global photoDone, wasteIn, oldWasteIn
-        photoDone = False
-        wasteIn = False
-        oldWasteIn = False
+	photoDone = False
+	wasteIn = False
+	oldWasteIn = False
+	my_photo = None
 
 
 def photo_ready():
-	#TODO photo
-	global photoDone
-	photoDone = True
+	global photoDone, my_photo
 	print("Scatto foto da timer")
+	my_photo = takePicture()
 
 def door_forgotten_open():
 	print("porta aprta da troppo tempo")
@@ -106,6 +117,8 @@ GPIO.setup(DOOR_SENSOR, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 GPIO.add_event_detect(DOOR_SENSOR, GPIO.BOTH, callback=door_callback)  
 
 tof1, tof2 = setupToF()
+
+reko = Rekognition.Rekognition(debug=True)
 
 if __name__ == "__main__":
 	doorLed = DoorLed.DoorLed()
@@ -146,13 +159,17 @@ if __name__ == "__main__":
 
 		if(not isOpen and wasteIn):
 			if(not photoDone):
+				print("chiudo ilo sportello")
+				#TODO: motore sportello
 				print("scatta foto da chiusura porta")
 				timer_pic.cancel()
-				photoDone = True
+				my_photo = takePicture()
+			
+
 
 			if(photoDone):
 				#TODO photo
-				nextActions()
+				handleWaste(my_photo)
 			
 			
 		
