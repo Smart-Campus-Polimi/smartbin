@@ -14,7 +14,7 @@ DIRECTORY = '~/pictures/'
 WEBCAM = '~/smartbin/scripts/webcam.sh'
 
 RASP = True
-KEY_INPUT = False
+KEY_INPUT = True
 THRESHOLD = 200
 
 imagePath = '~/Downloads/empty.png'
@@ -23,8 +23,8 @@ photoTime = 0
 is_running = True
 isPhoto = False
 
-t = c.MyCheat(q)
 q = Queue.Queue(10)
+t = c.MyCheat(q)
 
 def signal_handler(signal, frame):
 	print("Exit!")
@@ -43,20 +43,22 @@ def takePhoto():
 
 if __name__ == "__main__":
 	signal.signal(signal.SIGINT, signal_handler)
+	print("shoot and reko portable just started ;)")
 
 	if(RASP and not KEY_INPUT):
 		tof = VL53L0X.VL53L0X()
 	
+	if(not KEY_INPUT):	
+		t.setDaemon(True)
+		t.start()
+
 	reko = Rekognition.Rekognition(True)
-	
-	t.setDaemon(True)
-	t.start()
 	
 	while(is_running):
 		if(RASP):
 			if(KEY_INPUT):
-				waste = raw_input('picture?')
-				waste = c.parseWaste(waste)
+				cheat_waste = raw_input('picture?')
+				cheat_waste = c.parseWaste(cheat_waste)
 				file_name, photoTime = takePhoto()
 				isPhoto = True
 			if(not KEY_INPUT):
@@ -76,7 +78,8 @@ if __name__ == "__main__":
 			if not q.empty():
 				cheat_waste = q.get()
 			
-			if (cheat_waste is not None):
+			if cheat_waste is not None:
+				print("yeah")
 				waste_type = cheat_waste
 					
 			print("\n\nWASTE IS: {}".format(waste_type))
