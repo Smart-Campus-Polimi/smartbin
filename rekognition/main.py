@@ -6,6 +6,8 @@ import os
 import VL53L0X
 import time
 import Queue
+import signal
+import sys
 import MyCheat as c
 
 DIRECTORY = '~/pictures/'
@@ -21,7 +23,14 @@ photoTime = 0
 is_running = True
 isPhoto = False
 
+t = c.MyCheat(q)
 q = Queue.Queue(10)
+
+def signal_handler(signal, frame):
+	print("Exit!")
+
+	t.stop()
+	sys.exit(0)
 
 def takePhoto():
 	photoTime = time.time()
@@ -33,12 +42,13 @@ def takePhoto():
 
 
 if __name__ == "__main__":
+	signal.signal(signal.SIGINT, signal_handler)
 
 	if(RASP and not KEY_INPUT):
 		tof = VL53L0X.VL53L0X()
 	
 	reko = Rekognition.Rekognition(True)
-	t = c.MyCheat(q)
+	
 	t.setDaemon(True)
 	t.start()
 	
