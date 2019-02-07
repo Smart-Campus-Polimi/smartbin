@@ -4,6 +4,8 @@ import sys
 import VL53L0X
 import time
 import threading
+import subprocess
+import os
 
 import Rekognition
 import DoorLed
@@ -11,7 +13,7 @@ import DoorLed
 
 GPIO.setmode(GPIO.BCM)
 
-THRESHOLD_TOF = 374
+THRESHOLD_TOF = 350
 TIMER_PHOTO = 5 #seconds
 TIMER_DOOR = 20 #seconds
 
@@ -96,10 +98,13 @@ def handleWaste(imageFile):
 	waste_type = reko.getLabels(imageFile)
 	print("oggetto riconosciuto, e':")
 	print(waste_type)
-	print("illumino led")
-	print("aziono i motori")
-	time.sleep(2)
-	print("azione finita")
+	if(waste_type != "EMPTY"):
+		print("illumino led")
+		print("aziono i motori")
+		time.sleep(2)
+		print("azione finita")
+	else:
+		print("vuoto")
 	global photoDone, wasteIn, oldWasteIn
 	photoDone = False
 	wasteIn = False
