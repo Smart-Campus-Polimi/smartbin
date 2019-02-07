@@ -5,6 +5,8 @@ import subprocess
 import os
 import VL53L0X
 import time
+import Queue
+import MyCheat as c
 
 DIRECTORY = '~/pictures/'
 WEBCAM = '~/smartbin/scripts/webcam.sh'
@@ -14,10 +16,12 @@ KEY_INPUT = False
 THRESHOLD = 200
 
 imagePath = '~/Downloads/empty.png'
-waste = None
+cheat_waste = None
 photoTime = 0
 is_running = True
 isPhoto = False
+
+q = Queue.Queue(10)
 
 def takePhoto():
 	photoTime = time.time()
@@ -27,17 +31,6 @@ def takePhoto():
 
 	return file_name, photoTime
 
-def parseWaste(key):
-	if(key == '1'):
-		return 'UNSORTED'
-	elif(key == '2'):
-		return 'PLASTIC'
-	elif(key == '3'):
-		return 'PAPER'
-	elif(key == '4'):
-		return 'GLASS'
-	else:
-		return 'UNSORTED'
 
 if __name__ == "__main__":
 
@@ -45,12 +38,15 @@ if __name__ == "__main__":
 		tof = VL53L0X.VL53L0X()
 	
 	reko = Rekognition.Rekognition(True)
+	t = c.MyCheat(q)
+	t.setDeamon(True)
+	t.start()
 	
 	while(is_running):
 		if(RASP):
 			if(KEY_INPUT):
 				waste = raw_input('picture?')
-				waste = parseWaste(waste)
+				waste = c.parseWaste(waste)
 				file_name, photoTime = takePhoto()
 				isPhoto = True
 			if(not KEY_INPUT):
@@ -66,20 +62,20 @@ if __name__ == "__main__":
 		if(isPhoto):
 			print(file_name)
 			waste_type = reko.getLabels(os.path.expanduser(file_name))
-		
-			if(RASP and KEY_INPUT):
-				if (waste_type != waste):
-					#cheat
-					print(waste)
-				else:
-					#true
-					print(waste_type)
-			else:
-				print("\n\nWASTE IS: {}".format(waste_type))
-				if(not RASP):
-					is_running = False
+			
+			if not q.empty():
+				cheat_waste = q.get()
+
+			if (waste_type != cheat_waste):
+				waste_type = cheat_waste
+					
+			print("\n\nWASTE IS: {}".format(waste_type))
+			
+			if(not RASP):
+				is_running = False
 
 			reko.timeoutRecap(photoTime)
 			isPhoto = False
+			cheat_waste = None
 			time.sleep(2)
 
