@@ -45,7 +45,7 @@ class Rekognition():
 
 			if(self.debug):
 				print("Found {} labels".format(count))
-
+				print(result)
 			self.labelingTime = time.time() - self.labelingTime
 			return max(zip(result.values(), result.keys()))[1]			
 
