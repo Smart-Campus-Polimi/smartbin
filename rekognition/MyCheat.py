@@ -26,3 +26,6 @@ class MyCheat(threading.Thread):
             waste = parseWaste(waste)
             if not self.queue.full():
                 self.queue.put(waste)
+
+    def stop(self):
+        self.is_running = False
