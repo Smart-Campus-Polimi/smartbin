@@ -39,7 +39,7 @@ if __name__ == "__main__":
 	
 	reko = Rekognition.Rekognition(True)
 	t = c.MyCheat(q)
-	t.setDeamon(True)
+	t.setDaemon(True)
 	t.start()
 	
 	while(is_running):
@@ -65,8 +65,8 @@ if __name__ == "__main__":
 			
 			if not q.empty():
 				cheat_waste = q.get()
-
-			if (waste_type != cheat_waste):
+			
+			if (cheat_waste is not None):
 				waste_type = cheat_waste
 					
 			print("\n\nWASTE IS: {}".format(waste_type))

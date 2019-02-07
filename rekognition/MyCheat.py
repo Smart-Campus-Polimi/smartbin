@@ -15,7 +15,6 @@ def parseWaste(key):
 
 
 class MyCheat(threading.Thread):
-
     def __init__(self, queue):
         threading.Thread.__init__(self)
         self.queue = queue
@@ -24,6 +23,6 @@ class MyCheat(threading.Thread):
     def run(self):
         while(self.is_running):
             waste = raw_input('')
-            waste = parseWaste(waste
-            if not self.queue_sub.full():
+            waste = parseWaste(waste)
+            if not self.queue.full():
                 self.queue.put(waste)
