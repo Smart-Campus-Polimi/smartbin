@@ -6,7 +6,7 @@ import pprint as pp
 
 class Rekognition():
 		def __init__(self,debug=False):
-			self.session = boto3.Session(profile_name='default')
+			self.session = boto3.Session(profile_name='adminuser')
 			self.rekognition = self.session.client('rekognition')
 			self.debug = debug
 			self.requestTime = 0
