@@ -19,7 +19,7 @@ TIMER_DOOR = 20 #seconds
 
 #### PATHS ####
 WEBCAM = '~/smartbin/scripts/webcam.sh'
-DIRECTORY = '~/pictures/'
+PICTURE_DIRECTORY = '~/pictures/'
 
 #### GPIO PINS ####
 DOOR_SENSOR = 18
@@ -83,8 +83,16 @@ def door_callback(channel):
 			if(timer_door.is_alive()):
 				timer_door.cancel()
 
-def takePicture():
-	#TODO: handle errors
+def takePicture(my_cam):
+	#TODO: in class
+	file_name = time.time()
+	file_name = os.path.expanduser(PICTURE_DIRECTORY)+str(file_name) 
+	img = my_cam.get_image()
+	photoTime = time.time() - startTime
+	print("photo taken in  {}s".format(photoTime))
+	pygame.image.save(img, file_name)
+	saveTime = time.time() - startTime 
+	print("photo saved in {}s".format(saveTime))
 	path = subprocess.check_output(os.path.expanduser(WEBCAM))
 
 	#TODO use pygame
