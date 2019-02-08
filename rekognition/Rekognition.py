@@ -73,5 +73,5 @@ class Rekognition():
 			print("Request to rekognition: {0:.4f} s".format(self.requestTime))
 			print("Parsing response: {0:.4f} s".format(self.labelingTime))
 
-				
+			return photoT, self.requestTime, photoT+self.requestTime, self.labelingTime
 			
