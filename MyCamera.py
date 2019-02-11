@@ -12,11 +12,12 @@ class MyCamera():
 		pygame.camera.init()
 		self.photoDone = False
 		self.file_name = None
-		self.my_cam = self._initializeCamera() 
-		if self.my_cam is not None:
-			print("ERROR!")
-			#TODO: check initialization
-			return None
+		self._initializeCamera() 
+		#if self.my_cam is not None:
+		#	print("ERROR!")
+		#	#TODO: check initialization
+		#	return None
+		#self.my_cam.stop()
 
 	def _initializeCamera(self):
 		try:
@@ -26,27 +27,30 @@ class MyCamera():
 			return None
 		
 		print("camera device {}".format(self.dev))
-		self.cam = pygame.camera.Camera(self.dev, (320, 240))
-		while(True):
-			try:
-				self.cam.start()
-				break
-			except Exception as e:
-				print("unable to start the cam {}".format(e))
-				print("retry in 1 sec")
-				time.sleep(1)
-
-		return self.cam
+		self.my_cam = pygame.camera.Camera(self.dev, (320, 240))
+	
+		#while(True):
+		#	try:
+		#		self.my_cam.start()
+		#		return self.my_cam
+		#	except Exception as e:
+		#		print("unable to start the cam {}".format(e))
+		#		print("retry in 1 sec")
+		#		time.sleep(1)
+		return self.my_cam
 	
 	def stop(self):
-		self.cam.stop()
+		self.my_cam.stop()
 	
 	def takePhoto(self):
 		startTime = time.time()
-		self.file_name = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+		self.file_name = datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
 		self.file_name = os.path.expanduser(PICTURE_DIRECTORY)+self.file_name+".jpg" 
 		
+
+		print("take the picture")
 		#TODO: try except?
+		self.my_cam.start()
 		img = self.my_cam.get_image()
 		self.photoDone = True
 
@@ -58,7 +62,7 @@ class MyCamera():
 		
 		saveTime = time.time() - photoTime - startTime 
 		print("photo saved in {}s".format(saveTime))
-
+		self.my_cam.stop()
 		return self.file_name
 
 	#### PATH ####

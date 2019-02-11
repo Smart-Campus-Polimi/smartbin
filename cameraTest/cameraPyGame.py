@@ -12,6 +12,11 @@ except IndexError as e:
 cam = pygame.camera.Camera(my_cam,(320,240))
 cam.start()
 start_time = time.time()
+print("start")
+
+
+time.sleep(30)
+print("shoot")
 img = cam.get_image()
 pygame.image.save(img,"/home/pi/pictures/file"+str(time.time())+".jpg")
 print("Tot time {}".format(time.time()-start_time))

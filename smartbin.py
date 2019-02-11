@@ -161,7 +161,14 @@ if __name__ == "__main__":
 			distance2 = tof2.get_distance()
 
 			print(distance1, distance2)
-			
+			if(distance1 < 0):
+				print("tof1 morto, restart")
+				sys.exit()
+			if(distance2 < 0):
+                                print("tof2 morto, restart")
+                                sys.exit()
+
+
 			if(distance1 < THRESHOLD_TOF or distance2 < THRESHOLD_TOF):
 				wasteIn = True
 				if (wasteIn and not oldWasteIn):
