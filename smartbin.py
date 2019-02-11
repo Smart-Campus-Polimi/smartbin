@@ -9,6 +9,7 @@ import os
 
 import Rekognition
 import DoorLed
+import MyCamera
 
 
 GPIO.setmode(GPIO.BCM)
@@ -18,7 +19,7 @@ TIMER_PHOTO = 5 #seconds
 TIMER_DOOR = 20 #seconds
 
 #### PATHS ####
-WEBCAM = '~/smartbin/scripts/webcam.sh'
+#WEBCAM = '~/smartbin/scripts/webcam.sh'
 PICTURE_DIRECTORY = '~/pictures/'
 
 #### GPIO PINS ####
@@ -35,7 +36,6 @@ is_running = False
 startUp = True
 wasteIn = False
 oldWasteIn = False
-photoDone = False
 
 ####### SETUP TOF #######
 def setupToF():
@@ -83,25 +83,6 @@ def door_callback(channel):
 			if(timer_door.is_alive()):
 				timer_door.cancel()
 
-def takePicture(my_cam):
-	#TODO: in class
-	file_name = time.time()
-	file_name = os.path.expanduser(PICTURE_DIRECTORY)+str(file_name) 
-	img = my_cam.get_image()
-	photoTime = time.time() - startTime
-	print("photo taken in  {}s".format(photoTime))
-	pygame.image.save(img, file_name)
-	saveTime = time.time() - startTime 
-	print("photo saved in {}s".format(saveTime))
-	path = subprocess.check_output(os.path.expanduser(WEBCAM))
-
-	#TODO use pygame
-	global photoDone
-	photoDone = True
-
-	return path
-
-
 def handleWaste(imageFile):
 	waste_type = reko.getLabels(imageFile)
 	print("oggetto riconosciuto, e':")
@@ -113,18 +94,13 @@ def handleWaste(imageFile):
 		print("azione finita")
 	else:
 		print("vuoto")
-	global photoDone, wasteIn, oldWasteIn
-	photoDone = False
-	wasteIn = False
-	oldWasteIn = False
-	my_photo = None
-	#TODO: open sportello
+	
 
 
 def photo_ready():
-	global photoDone, my_photo
 	print("Scatto foto da timer")
-	my_photo = takePicture()
+	path = camera.takePhoto()
+	#return path
 
 def door_forgotten_open():
 	print("porta aprta da troppo tempo")
@@ -139,6 +115,8 @@ GPIO.add_event_detect(DOOR_SENSOR, GPIO.BOTH, callback=door_callback)
 tof1, tof2 = setupToF()
 
 reko = Rekognition.Rekognition(debug=True)
+camera = MyCamera.MyCamera()
+
 
 if __name__ == "__main__":
 	doorLed = DoorLed.DoorLed()
@@ -175,23 +153,32 @@ if __name__ == "__main__":
 				wasteIn = True
 				if (wasteIn and not oldWasteIn):
 					print("oggetto inserito")
-					photoDone = False
+					camera.setStatus(False)
+					camera.erasePath()
 					timer_pic = threading.Timer(TIMER_PHOTO, photo_ready)
 					timer_pic.start()
 
 		if(not isOpen and wasteIn):
-			if(not photoDone):
+			if(not camera.isPhotoDone()):
 				print("chiudo lo sportello")
 				#TODO: motore sportello
 				print("scatta foto da chiusura porta")
 				timer_pic.cancel()
-				my_photo = takePicture()
+				camera.takePhoto()
 			
 
 
-			if(photoDone):
-				my_photo = os.path.expanduser(DIRECTORY)+str(my_photo)[:-1]
-				handleWaste(my_photo)
+			if(camera.isPhotoDone()):
+				handleWaste(camera.currentPath())
+
+				global wasteIn, oldWasteIn
+				camera.setStatus(False)
+				camera.erasePath()
+				
+				wasteIn = False
+				oldWasteIn = False
+				
+				#TODO: open sportello
 			
 			
 		
