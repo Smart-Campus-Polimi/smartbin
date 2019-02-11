@@ -13,7 +13,7 @@ class Rekognition():
 			self.labelingTime = 0
 
 
-		def getLabels(self, imageFile, imageByte):
+		def getLabels(self, imageFile):
 			count = 0
 			result = {
 				"UNSORTED": 75,
@@ -24,7 +24,7 @@ class Rekognition():
 				"EMPTY": 0
 					}
 
-			rekognition_response = self._sendRequest(imageFile, imageByte)
+			rekognition_response = self._sendRequest(imageFile)
 			self.labelingTime = time.time()
 
 
@@ -49,12 +49,12 @@ class Rekognition():
 			self.labelingTime = time.time() - self.labelingTime
 			return max(zip(result.values(), result.keys()))[1]			
 
-		def _sendRequest(self, imageFile, imageByte):
+		def _sendRequest(self, imageFile):
 			self.requestTime = time.time()
 
 			with open(imageFile, 'rb') as image: 
 				rekognition_response = self.rekognition.detect_labels(
-							Image = {'Bytes': imageByte},
+							Image = {'Bytes': image},
 							MaxLabels=10,
 							MinConfidence=50)
 

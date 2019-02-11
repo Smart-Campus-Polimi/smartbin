@@ -49,7 +49,7 @@ def takePhoto(my_cam):
 	pygame.image.save(img, file_name)
 	saveTime = time.time() - startTime 
 	print("photo saved in {}s".format(saveTime))
-	return file_name, photoTime, saveTime, img
+	return file_name, photoTime, saveTime
 
 
 if __name__ == "__main__":
@@ -80,7 +80,7 @@ if __name__ == "__main__":
 			if(KEY_INPUT):
 				cheat_waste = raw_input('picture?')
 				cheat_waste = c.parseWaste(cheat_waste)
-				file_name, photoTime, saveTime,  byte_photo = takePhoto(cam)
+				file_name, photoTime, saveTime = takePhoto(cam)
 				isPhoto = True
 			if(not KEY_INPUT):
 				distance = tof.get_distance()
@@ -96,7 +96,7 @@ if __name__ == "__main__":
 		
 		if(isPhoto):
 			print(file_name)
-			waste_type = reko.getLabels(os.path.expanduser(file_name), byte_photo)
+			waste_type = reko.getLabels(os.path.expanduser(file_name))
 			if not q.empty():
 				cheat_waste = q.get()
 			
