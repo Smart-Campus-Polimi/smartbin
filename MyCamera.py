@@ -1,5 +1,6 @@
 import pygame
 import pygame.camera
+import os
 import time, datetime
 
 WIDTH = 320
@@ -11,7 +12,7 @@ class MyCamera():
 		pygame.camera.init()
 		self.photoDone = False
 		self.file_name = None
-		self.my_cam = _initializeCamera() 
+		self.my_cam = self._initializeCamera() 
 		if self.my_cam is not None:
 			print("ERROR!")
 			#TODO: check initialization
@@ -23,12 +24,23 @@ class MyCamera():
 		except IndexError as e:
 			print("no camera", e)
 			return None
-
-		self.cam = pygame.camera.Camera(self.dev, (WIDTH, HEIGHT))
-		self.cam.start()
+		
+		print("camera device {}".format(self.dev))
+		self.cam = pygame.camera.Camera(self.dev, (320, 240))
+		while(True):
+			try:
+				self.cam.start()
+				break
+			except Exception as e:
+				print("unable to start the cam {}".format(e))
+				print("retry in 1 sec")
+				time.sleep(1)
 
 		return self.cam
-
+	
+	def stop(self):
+		self.cam.stop()
+	
 	def takePhoto(self):
 		startTime = time.time()
 		self.file_name = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")

@@ -6,6 +6,7 @@ import time
 import threading
 import subprocess
 import os
+import signal 
 
 import Rekognition
 import DoorLed
@@ -14,7 +15,7 @@ import MyCamera
 
 GPIO.setmode(GPIO.BCM)
 
-THRESHOLD_TOF = 350
+THRESHOLD_TOF = 320
 TIMER_PHOTO = 5 #seconds
 TIMER_DOOR = 20 #seconds
 
@@ -36,6 +37,16 @@ is_running = False
 startUp = True
 wasteIn = False
 oldWasteIn = False
+
+
+####### SIGNAL HANDLER ######
+def signal_handler(signal, frame):
+	print("Exit from smartbin!")
+	doorLed.turnOff()
+	camera.stop()
+
+	sys.exit(0)
+
 
 ####### SETUP TOF #######
 def setupToF():
@@ -119,6 +130,8 @@ camera = MyCamera.MyCamera()
 
 
 if __name__ == "__main__":
+	signal.signal(signal.SIGINT, signal_handler)
+
 	doorLed = DoorLed.DoorLed()
 	doorLed.turnOff()
 	isOpen = GPIO.input(DOOR_SENSOR)
@@ -153,7 +166,7 @@ if __name__ == "__main__":
 				wasteIn = True
 				if (wasteIn and not oldWasteIn):
 					print("oggetto inserito")
-					camera.setStatus(False)
+					camera.setCameraStatus(False)
 					camera.erasePath()
 					timer_pic = threading.Timer(TIMER_PHOTO, photo_ready)
 					timer_pic.start()
@@ -171,8 +184,7 @@ if __name__ == "__main__":
 			if(camera.isPhotoDone()):
 				handleWaste(camera.currentPath())
 
-				global wasteIn, oldWasteIn
-				camera.setStatus(False)
+				camera.setCameraStatus(False)
 				camera.erasePath()
 				
 				wasteIn = False
