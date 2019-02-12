@@ -10,7 +10,10 @@ import signal
 
 import Rekognition
 import DoorLed
+import RingLed
 import MyCamera
+import SerialHandler
+
 
 
 GPIO.setmode(GPIO.BCM)
@@ -129,12 +132,14 @@ tof1, tof2 = setupToF()
 
 reko = Rekognition.Rekognition(debug=True)
 camera = MyCamera.MyCamera()
+serialComm = SerialHandler.SerialHandler()
+doorLed = DoorLed.DoorLed(serialComm.getSerialPort())
+ringLed = RingLed.RingLed(serialComm.getSerialPort())
 
 
 if __name__ == "__main__":
 	signal.signal(signal.SIGINT, signal_handler)
 
-	doorLed = DoorLed.DoorLed()
 	doorLed.turnOff()
 	isOpen = GPIO.input(DOOR_SENSOR)
 
@@ -156,6 +161,7 @@ if __name__ == "__main__":
 
 	#### START SMARTBIN ####
 	while is_running:
+		ringLed.staticGreen()
 		oldWasteIn = wasteIn
 		if(isOpen):
 			#TODO: create an array with last N values and check wether there are outliers
@@ -168,6 +174,7 @@ if __name__ == "__main__":
 				sys.exit()
 			if(distance2 < 0):
                                 print("tof2 morto, restart")
+                                ringLed.staticRed()
                                 sys.exit()
 
 
