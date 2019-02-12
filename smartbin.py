@@ -116,8 +116,10 @@ def photo_ready():
 def door_forgotten_open():
 	print("porta aprta da troppo tempo")
 	global isOpen
+	doorLed.blink()
 	while(isOpen):
-		doorLed.blink()
+		#doorLed.blink()
+		pass
 
 ##### DOOR SETUP #####
 GPIO.setup(DOOR_SENSOR, GPIO.IN, pull_up_down = GPIO.PUD_UP)
