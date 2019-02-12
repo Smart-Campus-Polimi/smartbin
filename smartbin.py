@@ -130,17 +130,20 @@ def door_forgotten_open():
 GPIO.setup(DOOR_SENSOR, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 GPIO.add_event_detect(DOOR_SENSOR, GPIO.BOTH, callback=door_callback)  
 
-tof1, tof2 = setupToF()
 
-reko = Rekognition.Rekognition(debug=True)
-camera = MyCamera.MyCamera()
-serialComm = SerialHandler.SerialHandler()
-doorLed = DoorLed.DoorLed(serialComm.getSerialPort())
-ringLed = RingLed.RingLed(serialComm.getSerialPort())
 
 
 if __name__ == "__main__":
 	signal.signal(signal.SIGINT, signal_handler)
+	
+	serialComm = SerialHandler.SerialHandler()
+	doorLed = DoorLed.DoorLed(serialComm.getSerialPort())
+	ringLed = RingLed.RingLed(serialComm.getSerialPort())
+
+	tof1, tof2 = setupToF()
+
+	reko = Rekognition.Rekognition(debug=True)
+	camera = MyCamera.MyCamera()
 
 	doorLed.turnOff()
 	isOpen = GPIO.input(DOOR_SENSOR)
@@ -172,11 +175,12 @@ if __name__ == "__main__":
 			print(distance1, distance2)
 			if(distance1 < 0):
 				print("tof1 morto, restart")
+				ringLed.staticRed()
 				sys.exit()
 			if(distance2 < 0):
-                                print("tof2 morto, restart")
-                                ringLed.staticRed()
-                                sys.exit()
+                print("tof2 morto, restart")
+                ringLed.staticRed()
+                sys.exit()
 
 
 			if(distance1 < THRESHOLD_TOF or distance2 < THRESHOLD_TOF):
