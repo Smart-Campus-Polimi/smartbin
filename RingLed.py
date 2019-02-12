@@ -27,3 +27,13 @@ class RingLed():
 
 	def checkStatus(self):
 		pass
+
+	def waitingForToF(self):
+		pass
+
+	def ToFRunning(self):
+		pass
+
+	def ToFNOTRunning(self):
+		#differenciate
+		pass
