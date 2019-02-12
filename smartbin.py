@@ -178,9 +178,9 @@ if __name__ == "__main__":
 				ringLed.staticRed()
 				sys.exit()
 			if(distance2 < 0):
-                print("tof2 morto, restart")
-                ringLed.staticRed()
-                sys.exit()
+		                print("tof2 morto, restart")
+                		ringLed.staticRed()
+                		sys.exit()
 
 
 			if(distance1 < THRESHOLD_TOF or distance2 < THRESHOLD_TOF):
