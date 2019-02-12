@@ -46,8 +46,8 @@ oldWasteIn = False
 def signal_handler(signal, frame):
 	print("Exit from smartbin!")
 	doorLed.turnOff()
+	ringLed.turnOff()
 	camera.stop()
-
 	sys.exit(0)
 
 
@@ -103,9 +103,11 @@ def handleWaste(imageFile):
 	print(waste_type)
 	if(waste_type != "EMPTY"):
 		print("illumino led")
+		ringLed.breatheGreen()
 		print("aziono i motori")
-		time.sleep(2)
+		time.sleep(5)
 		print("azione finita")
+		ringLed.staticGreen()
 	else:
 		print("vuoto")
 	
@@ -158,10 +160,9 @@ if __name__ == "__main__":
 		print("ERROR STARTUP")
 		sys.exit()
 
-
+	ringLed.staticGreen()
 	#### START SMARTBIN ####
 	while is_running:
-		ringLed.staticGreen()
 		oldWasteIn = wasteIn
 		if(isOpen):
 			#TODO: create an array with last N values and check wether there are outliers
