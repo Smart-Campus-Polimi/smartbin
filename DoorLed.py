@@ -18,14 +18,5 @@ class DoorLed():
 		self.ser.write(b'#D2!')
 		print("lampeggio porta (errore)")
 
-
-### maybe ###
-	def setDoor(self, value):
-		self.oldOpen = self.open
-		self.open = value
-
-	def isOpen():
-		return self.isOpen
-
-	def oldIsOpen():
-		return self.oldOpen
+	def checkStatus(self):
+		pass

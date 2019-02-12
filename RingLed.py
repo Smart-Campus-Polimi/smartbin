@@ -24,3 +24,6 @@ class RingLed():
 	def breatheRed(self):
 		self.ser.write(b'#R4!')
 		print("led breathe red")
+
+	def checkStatus(self):
+		pass

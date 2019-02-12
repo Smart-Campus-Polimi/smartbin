@@ -53,6 +53,8 @@ def signal_handler(signal, frame):
 
 ####### SETUP TOF #######
 def setupToF():
+	ringLed.waitingForToF()
+
 	GPIO.setwarnings(False)
 
 	# Setup GPIO for shutdown pins on each VL53L0X
@@ -75,6 +77,8 @@ def setupToF():
 	GPIO.output(SENSOR2, GPIO.HIGH)
 	time.sleep(0.50)
 	tof1.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
+
+	ringLed.ToFRunning()
 
 	return tof, tof1
 
@@ -135,10 +139,17 @@ GPIO.add_event_detect(DOOR_SENSOR, GPIO.BOTH, callback=door_callback)
 
 if __name__ == "__main__":
 	signal.signal(signal.SIGINT, signal_handler)
-	
+	print("STARTING SMARTBIN V2.0...")
+
 	serialComm = SerialHandler.SerialHandler()
+
 	doorLed = DoorLed.DoorLed(serialComm.getSerialPort())
+	doorLed.checkStatus()
+
 	ringLed = RingLed.RingLed(serialComm.getSerialPort())
+	ringLed.checkStatus()
+	#if(serialComm.isRunning()):
+		#first x led green
 
 	tof1, tof2 = setupToF()
 
@@ -147,6 +158,8 @@ if __name__ == "__main__":
 
 	doorLed.turnOff()
 	isOpen = GPIO.input(DOOR_SENSOR)
+
+	ringLed.staticRed()
 
 	while(isOpen):
 		doorLed.blink()
@@ -173,13 +186,17 @@ if __name__ == "__main__":
 			distance2 = tof2.get_distance()
 
 			print(distance1, distance2)
+
 			if(distance1 < 0):
 				print("tof1 morto, restart")
 				ringLed.staticRed()
+				time.sleep(10)
 				sys.exit()
+
 			if(distance2 < 0):
 		                print("tof2 morto, restart")
                 		ringLed.staticRed()
+                		time.sleep(10)
                 		sys.exit()
 
 
@@ -222,3 +239,4 @@ if __name__ == "__main__":
 	GPIO.output(SENSOR2, GPIO.LOW)
 	tof1.stop_ranging()
 	GPIO.output(SENSOR1, GPIO.LOW)
+	RingLed.staticRed()

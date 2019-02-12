@@ -4,12 +4,15 @@ class SerialHandler():
 	def __init__(self):
 		self.dev = 0
 		self._initSerial()
-		print("serial dev {}".format(self.ser))
+		
 		if(self.ser is not  None):
 			self.ser.flushInput()
-			self.open = False
-			self.oldOpen = False
+			self.serialStatus = True
 
+			print("Open serial communication on serial port {}".format(self.dev.port))
+		else: 
+			print("Impossible to open the serial communication")
+			self.serialStatus = False
 
 			
 	def _initSerial(self):
@@ -28,3 +31,6 @@ class SerialHandler():
 
 	def getSerialPort(self):
 		return self.ser
+
+	def isRunning(self):
+		return self.serialStatus
