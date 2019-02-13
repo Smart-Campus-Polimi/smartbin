@@ -97,10 +97,11 @@ def door_callback(channel):
 		timer_door = threading.Timer(TIMER_DOOR, door_forgotten_open)
 		timer_door.start()
 	if(not isOpen and oldIsOpen):
-		doorLed.turnOff()
-		if(timer_door is not None):
-			if(timer_door.is_alive()):
-				timer_door.cancel()
+		if(not wasteIn):
+			doorLed.turnOff()
+			if(timer_door is not None):
+				if(timer_door.is_alive()):
+					timer_door.cancel()
 
 def handleWaste(imageFile):
 	waste_type = reko.getLabels(imageFile)
@@ -200,11 +201,11 @@ if __name__ == "__main__":
 				sys.exit()
 
 			if(distance2 < 0):
-		                print("tof2 morto, restart")
-                		ringLed.staticRed()
-                		matrixLed.redCross()
-                		time.sleep(10)
-                		sys.exit()
+				print("tof2 morto, restart")
+				ringLed.staticRed()
+				matrixLed.redCross()
+				time.sleep(10)
+				sys.exit()
 
 
 			if(distance1 < THRESHOLD_TOF or distance2 < THRESHOLD_TOF):
@@ -227,6 +228,7 @@ if __name__ == "__main__":
 
 
 			if(camera.isPhotoDone()):
+				doorLed.turnOff()
 				handleWaste(camera.currentPath())
 
 				camera.setCameraStatus(False)
