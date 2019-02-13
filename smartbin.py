@@ -19,7 +19,7 @@ import SerialHandler
 
 GPIO.setmode(GPIO.BCM)
 
-THRESHOLD_TOF = 320
+THRESHOLD_TOF = 300
 TIMER_PHOTO = 5 #seconds
 TIMER_DOOR = 20 #seconds
 
