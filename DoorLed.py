@@ -10,7 +10,6 @@ class DoorLed():
 		print("spengo luci porta")
 
 	def turnOn(self):
-		print(self.ser)
 		self.ser.write(b'#D1!')
 		print("accendo luci porta")
 

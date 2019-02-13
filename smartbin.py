@@ -147,7 +147,10 @@ if __name__ == "__main__":
 	doorLed.checkStatus()
 
 	ringLed = RingLed.RingLed(serialComm.getSerialPort())
-	ringLed.checkStatus()
+	ringLed.checkStatus()ù
+
+	matrixLed = MatrixLed.RingLed(serialComm.getSerialPort())
+	matrixLed.checkStatus()
 	#if(serialComm.isRunning()):
 		#first x led green
 
@@ -160,6 +163,7 @@ if __name__ == "__main__":
 	isOpen = GPIO.input(DOOR_SENSOR)
 
 	ringLed.staticRed()
+	matrixLed.greenArrow()
 
 	while(isOpen):
 		doorLed.blink()
@@ -190,12 +194,14 @@ if __name__ == "__main__":
 			if(distance1 < 0):
 				print("tof1 morto, restart")
 				ringLed.staticRed()
+				matrixLed.redCross()
 				time.sleep(10)
 				sys.exit()
 
 			if(distance2 < 0):
 		                print("tof2 morto, restart")
                 		ringLed.staticRed()
+                		matrixLed.redCross()
                 		time.sleep(10)
                 		sys.exit()
 
