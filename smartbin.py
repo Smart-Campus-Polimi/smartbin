@@ -11,6 +11,7 @@ import signal
 import Rekognition
 import DoorLed
 import RingLed
+import MatrixLed
 import MyCamera
 import SerialHandler
 
@@ -147,9 +148,9 @@ if __name__ == "__main__":
 	doorLed.checkStatus()
 
 	ringLed = RingLed.RingLed(serialComm.getSerialPort())
-	ringLed.checkStatus()ù
+	ringLed.checkStatus()
 
-	matrixLed = MatrixLed.RingLed(serialComm.getSerialPort())
+	matrixLed = MatrixLed.MatrixLed(serialComm.getSerialPort())
 	matrixLed.checkStatus()
 	#if(serialComm.isRunning()):
 		#first x led green

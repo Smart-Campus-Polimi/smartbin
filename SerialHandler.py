@@ -9,7 +9,7 @@ class SerialHandler():
 			self.ser.flushInput()
 			self.serialStatus = True
 
-			print("Open serial communication on serial port {}".format(self.dev.port))
+			print("Open serial communication on serial port {}".format(self.ser.port))
 		else: 
 			print("Impossible to open the serial communication")
 			self.serialStatus = False
