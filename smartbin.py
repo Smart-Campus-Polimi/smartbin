@@ -89,6 +89,7 @@ def door_callback(channel):
 	global isOpen
 	oldIsOpen = isOpen
 	global timer_door
+	#global wasteIn
 
 	isOpen = GPIO.input(DOOR_SENSOR)
 
@@ -97,11 +98,11 @@ def door_callback(channel):
 		timer_door = threading.Timer(TIMER_DOOR, door_forgotten_open)
 		timer_door.start()
 	if(not isOpen and oldIsOpen):
-		if(not wasteIn):
-			doorLed.turnOff()
-			if(timer_door is not None):
-				if(timer_door.is_alive()):
-					timer_door.cancel()
+		#if(not wasteIn):
+		doorLed.turnOff()
+		if(timer_door is not None):
+			if(timer_door.is_alive()):
+				timer_door.cancel()
 
 def handleWaste(imageFile):
 	waste_type = reko.getLabels(imageFile)
@@ -219,6 +220,7 @@ if __name__ == "__main__":
 
 		if(not isOpen and wasteIn):
 			if(not camera.isPhotoDone()):
+				#doorLed.turnOn()
 				print("chiudo lo sportello")
 				#TODO: motore sportello
 				print("scatta foto da chiusura porta")
@@ -228,7 +230,7 @@ if __name__ == "__main__":
 
 
 			if(camera.isPhotoDone()):
-				doorLed.turnOff()
+				#doorLed.turnOff()
 				handleWaste(camera.currentPath())
 
 				camera.setCameraStatus(False)
