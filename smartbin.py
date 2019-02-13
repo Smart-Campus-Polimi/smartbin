@@ -48,6 +48,7 @@ def signal_handler(signal, frame):
 	print("Exit from smartbin!")
 	doorLed.turnOff()
 	ringLed.turnOff()
+	miniservo.openLid()
 	camera.stop()
 	sys.exit(0)
 
