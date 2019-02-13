@@ -162,6 +162,9 @@ if __name__ == "__main__":
 	reko = Rekognition.Rekognition(debug=True)
 	camera = MyCamera.MyCamera()
 
+	miniservo = Servo.Servo()
+	miniservo.openLid()
+
 	doorLed.turnOff()
 	isOpen = GPIO.input(DOOR_SENSOR)
 
@@ -222,7 +225,7 @@ if __name__ == "__main__":
 			if(not camera.isPhotoDone()):
 				#doorLed.turnOn()
 				print("chiudo lo sportello")
-				#TODO: motore sportello
+				miniservo.closeLid()
 				print("scatta foto da chiusura porta")
 				timer_pic.cancel()
 				camera.takePhoto()
@@ -238,8 +241,8 @@ if __name__ == "__main__":
 				
 				wasteIn = False
 				oldWasteIn = False
+				miniservo.openLid()
 				
-				#TODO: open sportello
 			
 			
 		
