@@ -14,7 +14,7 @@ import RingLed
 import MatrixLed
 import MyCamera
 import SerialHandler
-
+import Servo
 
 
 GPIO.setmode(GPIO.BCM)
@@ -163,7 +163,7 @@ if __name__ == "__main__":
 	reko = Rekognition.Rekognition(debug=True)
 	camera = MyCamera.MyCamera()
 
-	miniservo = Servo.Servo()
+	miniservo = Servo.DoorServo()
 	miniservo.openLid()
 
 	doorLed.turnOff()
