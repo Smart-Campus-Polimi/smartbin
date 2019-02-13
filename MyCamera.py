@@ -47,12 +47,21 @@ class MyCamera():
 		self.file_name = datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
 		self.file_name = os.path.expanduser(PICTURE_DIRECTORY)+self.file_name+".jpg" 
 		
-
+		self.photoDone = False
 		print("take the picture")
-		#TODO: try except?
-		self.my_cam.start()
-		img = self.my_cam.get_image()
-		self.photoDone = True
+		while(not self.photoDone):
+			try:
+				self.my_cam.start()
+				img = self.my_cam.get_image()
+				self.photoDone = True
+
+			except Exception as e:
+				print("unable to start the cam {}".format(e))
+				print("retry in 1 sec")
+				time.sleep(.1)
+		#self.my_cam.start()
+		#img = self.my_cam.get_image()
+		#self.photoDone = True
 
 		photoTime = time.time() - startTime
 		print("photo taken in  {}s".format(photoTime))
