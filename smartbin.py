@@ -20,7 +20,7 @@ import Servo
 GPIO.setmode(GPIO.BCM)
 
 THRESHOLD_TOF = 300
-TIMER_PHOTO = 5 #seconds
+TIMER_PHOTO = 30 #seconds
 TIMER_DOOR = 20 #seconds
 
 #### PATHS ####
@@ -121,9 +121,9 @@ def handleWaste(imageFile):
 	
 
 
-def photo_ready():
+def photo_ready(my_cam):
 	print("Scatto foto da timer")
-	path = camera.takePhoto()
+	my_cam.takePhoto()
 	#return path
 
 def door_forgotten_open():
@@ -219,7 +219,7 @@ if __name__ == "__main__":
 					print("oggetto inserito")
 					camera.setCameraStatus(False)
 					camera.erasePath()
-					timer_pic = threading.Timer(TIMER_PHOTO, photo_ready)
+					timer_pic = threading.Timer(TIMER_PHOTO, photo_ready, [camera])
 					timer_pic.start()
 
 		if(not isOpen and wasteIn):
