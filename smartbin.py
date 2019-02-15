@@ -28,7 +28,7 @@ OLD_STATUS = "NONE"
 
 
 THRESHOLD_TOF = 300
-TIMER_PHOTO = 5 #seconds
+TIMER_PHOTO = 15 #seconds
 TIMER_DOOR = 20 #seconds
 
 #### PATHS ####
@@ -106,7 +106,7 @@ def door_callback(channel):
 	isOpen = GPIO.input(DOOR_SENSOR)
 
 	if(isOpen and not oldIsOpen):
-		if(CURRENT_STATUS == "PHOTO" or CURRENT_STATUS == "MOTORS"):
+		if(CURRENT_STATUS == "PHOTO" or CURRENT_STATUS == "MOTORS" or CURRENT_STATUS == "PHOTO_DONE" or CURRENT_STATUS == "REKOGNITION"):
 			print("ERROR!!!!!!")
 		else:
 			CURRENT_STATUS = "DOOR_OPEN"
@@ -167,80 +167,79 @@ if __name__ == "__main__":
 	print("STARTING SMARTBIN V2.0...")
 
 	CURRENT_STATUS = "INIT"
-	
-	if(CURRENT_STATUS == "INIT"):
-		print("\n### Current status: {}".format(CURRENT_STATUS))
-		serialComm = SerialHandler.SerialHandler()
+	setup = True
+	while(setup):
+		if(CURRENT_STATUS == "INIT"):
+			print("\n### Current status: {}".format(CURRENT_STATUS))
+			serialComm = SerialHandler.SerialHandler()
 
-		doorLed = DoorLed.DoorLed(serialComm.getSerialPort())
-		doorLed.checkStatus()
+			doorLed = DoorLed.DoorLed(serialComm.getSerialPort())
+			doorLed.checkStatus()
 
-		ringLed = RingLed.RingLed(serialComm.getSerialPort())
-		ringLed.checkStatus()
+			ringLed = RingLed.RingLed(serialComm.getSerialPort())
+			ringLed.checkStatus()
 
-		matrixLed = MatrixLed.MatrixLed(serialComm.getSerialPort())
-		matrixLed.checkStatus()
+			matrixLed = MatrixLed.MatrixLed(serialComm.getSerialPort())
+			matrixLed.checkStatus()
+			
+			tof1, tof2 = setupToF()
+
+			reko = Rekognition.Rekognition(debug=True)
+			camera = MyCamera.MyCamera()
+
+			miniservo = Servo.DoorServo()
+			#if no errors set current status = boot 
+			CURRENT_STATUS = "BOOT"
 		
-		tof1, tof2 = setupToF()
+		elif(CURRENT_STATUS == "BOOT"):
+			print("\n### Current status: {}".format(CURRENT_STATUS))
 
-		reko = Rekognition.Rekognition(debug=True)
-		camera = MyCamera.MyCamera()
-
-		miniservo = Servo.DoorServo()
-		#if no errors set current status = boot 
-		CURRENT_STATUS = "BOOT"
-	
-	if(CURRENT_STATUS == "BOOT"):
-		print("\n### Current status: {}".format(CURRENT_STATUS))
-
-		isOpen = GPIO.input(DOOR_SENSOR)
-		startUp = True
+			isOpen = GPIO.input(DOOR_SENSOR)
+			startUp = True
+			
+			if(isOpen):
+				CURRENT_STATUS = "DOOR_OPEN_ERROR"
+			else:
+				CURRENT_STATUS = "BOOT_DONE"
+			
+			#END BOOT
 		
-		if(isOpen):
-			CURRENT_STATUS = "DOOR_OPEN_ERROR"
-		else:
+		elif(CURRENT_STATUS == "DOOR_OPEN_ERROR"):
+			print("\n### Current status: {}".format(CURRENT_STATUS))
+			ringLed.staticRed()
+			matrixLed.redCross()
+			while(isOpen):
+				if(startUp):
+					print("--> chiudi lo sportello per avviare lo smartbin")
+					doorLed.blink()
+					startUp = False
+			
 			CURRENT_STATUS = "BOOT_DONE"
+			
 		
-		#END BOOT
-	
-	if(CURRENT_STATUS == "DOOR_OPEN_ERROR"):
-		print("\n### Current status: {}".format(CURRENT_STATUS))
-		ringLed.staticRed()
-		matrixLed.redCross()
-		while(isOpen):
-			if(startUp):
-				print("--> chiudi lo sportello per avviare lo smartbin")
-				doorLed.blink()
-				startUp = False
-		#end of while
-		
-		CURRENT_STATUS == "BOOT_DONE"
-		
-	
 
-	if(CURRENT_STATUS == "BOOT_DONE"):
-		print("\n### Current status: {}".format(CURRENT_STATUS))
-		print("--> avvio smartbin...")
-		is_running = True
-		ringLed.staticGreen()
-		matrixLed.greenArrow()
-		#doorLed.turnOff()
-		CURRENT_STATUS = "IDLE"
+		elif(CURRENT_STATUS == "BOOT_DONE"):
+			print("\n### Current status: {}".format(CURRENT_STATUS))
+			print("--> avvio smartbin...")
+			is_running = True
+			setup = False
+			ringLed.staticGreen()
+			matrixLed.greenArrow()
+			#doorLed.turnOff()
+			CURRENT_STATUS = "IDLE"
 		
-	
 
 
 	
 	#### START SMARTBIN ####
-	
-
-	
 	while is_running:
 		if(OLD_STATUS is not CURRENT_STATUS):
 			print("\n### Current status: {} - old {}".format(CURRENT_STATUS, OLD_STATUS))
 			
 		OLD_STATUS = CURRENT_STATUS
 		
+		
+		##### DOOR OPEN #####
 		if(CURRENT_STATUS == "DOOR_OPEN"):
 			#TODO: create an array with last N values and check wether there are outliers
 			distance1 = tof1.get_distance()
@@ -261,10 +260,11 @@ if __name__ == "__main__":
 			
 			oldWasteIn = wasteIn
 			if(distance1 < THRESHOLD_TOF or distance2 < THRESHOLD_TOF):
-				wasteIn = True
+				#wasteIn = True
 				CURRENT_STATUS = "WASTE_IN"
+			
 				
-
+		##### WASTE IN #####
 		elif(CURRENT_STATUS == "WASTE_IN"):
 			print("oggetto inserito")
 			camera.setCameraStatus(False)
@@ -273,35 +273,60 @@ if __name__ == "__main__":
 			timer_pic.start()
 			CURRENT_STATUS = "WAIT_CLOSE"
 			
-		
+			
+		##### WAIT CLOSE #####
 		elif(CURRENT_STATUS == "WAIT_CLOSE"):
 			pass
 		
 		
+		##### PHOTO #####
 		elif(CURRENT_STATUS == "PHOTO"):
-			if(not camera.isPhotoDone()):
-				#doorLed.turnOn()
-				print("chiudo lo sportello")
-				miniservo.closeLid()
-				print("scatta foto da chiusura porta")
-				timer_pic.cancel()
-				camera.takePhoto()
-			
+			#doorLed.turnOn()
+			print("chiudo lo sportello")
+			miniservo.closeLid()
+			print("scatta foto da chiusura porta")
+			timer_pic.cancel()
+			camera.takePhoto()
 
-
-			if(camera.isPhotoDone()):
+			CURRENT_STATUS = "PHOTO_DONE"
 				#doorLed.turnOff()
-				handleWaste(camera.currentPath())
+		
+		
+		##### PHOTO DONE #####	
+		elif(CURRENT_STATUS == "PHOTO_DONE"):
+			#camera.setCameraStatus(False)
+			CURRENT_STATUS = "REKOGNITION"
+		
+		
+		##### REKOGNITION #####
+		elif(CURRENT_STATUS == "REKOGNITION"):
+			waste_type = reko.getLabels(camera.currentPath())
+			#camera.erasePath()			
+			print("oggetto riconosciuto, e': {}".format(waste_type))
 
-				camera.setCameraStatus(False)
-				camera.erasePath()
-				
-				wasteIn = False
-				oldWasteIn = False
-				miniservo.openLid()
+		
+			if(waste_type is "EMPTY"):
 				CURRENT_STATUS = "IDLE"
-				
-		if(CURRENT_STATUS == "IDLE"):
+				miniservo.openLid()
+			else:
+				CURRENT_STATUS = "MOTORS"
+		
+		
+		##### MOTORS #####
+		elif(CURRENT_STATUS == "MOTORS"):
+			print("illumino led")
+			ringLed.breatheGreen()
+			print("aziono i motori")
+			time.sleep(3)
+			print("azione finita")
+			ringLed.staticGreen()
+	
+			miniservo.openLid()
+			CURRENT_STATUS = "IDLE"
+			
+			
+		##### IDLE #####
+		elif(CURRENT_STATUS == "IDLE"):
 			if(deadToF1 and deadToF2):
 				#reset tof
 				#close lid
@@ -313,10 +338,7 @@ if __name__ == "__main__":
 				deadToF2 = False
 				#open lid
 				#green light (->)
-				
-				
 
-			
 		
 				
 

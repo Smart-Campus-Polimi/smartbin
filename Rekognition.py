@@ -32,16 +32,16 @@ class Rekognition():
 				if label['Name'] not in l.drop:
 					count += 1
 					if label['Name'] in l.plastic:
-						result['PLASTIC'] += label['Confidence']
+						result["PLASTIC"] += label['Confidence']
 					if label['Name'] in l.aluminium:
-						result['ALUMINIUM'] += label['Confidence']
+						result["ALUMINIUM"] += label['Confidence']
 					if label['Name'] in l.paper:
-						result['PAPER'] += label['Confidence']
+						result["PAPER"] += label['Confidence']
 					if label['Name'] in l.glass:
-						result['GLASS'] += label['Confidence']
+						result["GLASS"] += label['Confidence']
 			
 			if(count<2):
-				result['EMPTY'] = 100
+				result["EMPTY"] = 100
 
 			if(self.debug):
 				print(result)
