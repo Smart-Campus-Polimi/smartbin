@@ -7,23 +7,23 @@ class RingLed():
 	
 	def turnOff(self):
 		self.ser.write(b'#R0!')
-		print("spengo ring")
+		print("RING: spengo ring")
 
 	def staticGreen(self):
-		self.ser.write(b'#R1!')
-		print("led green")
+		#self.ser.write(b'#R1!')
+		print("RING: led green")
 
 	def staticRed(self):
-		self.ser.write(b'#R2!')
-		print("led red")
+		#self.ser.write(b'#R2!')
+		print("RING: led red")
 
 	def breatheGreen(self):
-		self.ser.write(b'#R3!')
-		print("led breathe green")
+		#self.ser.write(b'#R3!')
+		print("RING: led breathe green")
 
 	def breatheRed(self):
-		self.ser.write(b'#R4!')
-		print("led breathe red")
+		#self.ser.write(b'#R4!')
+		print("RING: led breathe red")
 
 	def checkStatus(self):
 		pass

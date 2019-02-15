@@ -70,9 +70,9 @@ class Rekognition():
 		def timeoutRecap(self, photoT):
 			print("\n")
 			print("-"*30)
-			print("Taking a picture: {0:.4f} s".format(photoT))
-			print("Request to rekognition: {0:.4f} s".format(self.requestTime))
-			print("Parsing response: {0:.4f} s".format(self.labelingTime))
+			print("REKO: Taking a picture: {0:.4f} s".format(photoT))
+			print("REKO: Request to rekognition: {0:.4f} s".format(self.requestTime))
+			print("REKO: Parsing response: {0:.4f} s".format(self.labelingTime))
 
 				
 			

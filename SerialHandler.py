@@ -9,9 +9,9 @@ class SerialHandler():
 			self.ser.flushInput()
 			self.serialStatus = True
 
-			print("Open serial communication on serial port {}".format(self.ser.port))
+			print("SERIAL: Open serial communication on serial port {}".format(self.ser.port))
 		else: 
-			print("Impossible to open the serial communication")
+			print("SERIAL: Impossible to open the serial communication")
 			self.serialStatus = False
 
 			
@@ -20,12 +20,12 @@ class SerialHandler():
 			self.ser = serial.Serial("/dev/ttyACM"+str(self.dev), 9600)
 			
 		except serial.SerialException as e:
-			print("Catch serial exception {}".format(e))
+			print("SERIAL: Catch serial exception {}".format(e))
 			self.dev += 1
 			if(self.dev < 5):
 				self._initSerial()
 			else:
-				print("NO ARDUINO FOUND! Error very very big")
+				print("SERIAL: NO ARDUINO FOUND! Error very very big")
 				self.ser = None
 
 

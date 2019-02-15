@@ -8,6 +8,7 @@ import subprocess
 import os
 import signal 
 
+#my imports
 import Rekognition
 import DoorLed
 import RingLed
@@ -16,11 +17,18 @@ import MyCamera
 import SerialHandler
 import Servo
 
-
 GPIO.setmode(GPIO.BCM)
 
+#STATES
+STATES = ["INIT", "BOOT", "BOOT_DONE", "IDLE", "DOOR_OPEN_ERROR", "DOOR_OPEN_EMPTY", "DOOR_CLOSED_OBJECT", "PHOTO", "MOTORS", "TOF_RESET"]
+
+CURRENT_STATUS = "INIT"
+OLD_STATUS = "NONE"
+
+
+
 THRESHOLD_TOF = 300
-TIMER_PHOTO = 30 #seconds
+TIMER_PHOTO = 5 #seconds
 TIMER_DOOR = 20 #seconds
 
 #### PATHS ####
@@ -29,8 +37,8 @@ PICTURE_DIRECTORY = '~/pictures/'
 
 #### GPIO PINS ####
 DOOR_SENSOR = 18
-SENSOR1 = 20
-SENSOR2 = 16
+SENSOR1 = 20 #tof1
+SENSOR2 = 16 #to2
 
 
 #### VARS ####
@@ -38,9 +46,11 @@ timer_door = None
 isOpen = False
 oldIsOpen = False
 is_running = False
-startUp = True
+#startUp = True
 wasteIn = False
 oldWasteIn = False
+deadToF1 = False
+deadToF2 = False
 
 
 ####### SIGNAL HANDLER ######
@@ -88,6 +98,7 @@ def setupToF():
 
 def door_callback(channel):
 	global isOpen
+	global CURRENT_STATUS, OLD_STATUS
 	oldIsOpen = isOpen
 	global timer_door
 	#global wasteIn
@@ -95,12 +106,22 @@ def door_callback(channel):
 	isOpen = GPIO.input(DOOR_SENSOR)
 
 	if(isOpen and not oldIsOpen):
-		doorLed.turnOn()
-		timer_door = threading.Timer(TIMER_DOOR, door_forgotten_open)
-		timer_door.start()
+		if(CURRENT_STATUS == "PHOTO" or CURRENT_STATUS == "MOTORS"):
+			print("ERROR!!!!!!")
+		else:
+			CURRENT_STATUS = "DOOR_OPEN"
+			doorLed.turnOn()
+			timer_door = threading.Timer(TIMER_DOOR, door_forgotten_open)
+			timer_door.start()
+		
+		
 	if(not isOpen and oldIsOpen):
-		#if(not wasteIn):
-		doorLed.turnOff()
+		if(CURRENT_STATUS == "DOOR_OPEN"):
+			CURRENT_STATUS = "IDLE"
+		if(CURRENT_STATUS == "WASTE_IN" or CURRENT_STATUS == "WAIT_CLOSE"):
+			CURRENT_STATUS = "PHOTO"
+		
+		doorLed.turnOff() #move up in door idle
 		if(timer_door is not None):
 			if(timer_door.is_alive()):
 				timer_door.cancel()
@@ -123,8 +144,8 @@ def handleWaste(imageFile):
 
 def photo_ready(my_cam):
 	print("Scatto foto da timer")
-	my_cam.takePhoto()
-	#return path
+	global CURRENT_STATUS
+	CURRENT_STATUS = "WAIT_CLOSE"
 
 def door_forgotten_open():
 	print("porta aprta da troppo tempo")
@@ -145,84 +166,119 @@ if __name__ == "__main__":
 	signal.signal(signal.SIGINT, signal_handler)
 	print("STARTING SMARTBIN V2.0...")
 
-	serialComm = SerialHandler.SerialHandler()
+	CURRENT_STATUS = "INIT"
+	
+	if(CURRENT_STATUS == "INIT"):
+		print("\n### Current status: {}".format(CURRENT_STATUS))
+		serialComm = SerialHandler.SerialHandler()
 
-	doorLed = DoorLed.DoorLed(serialComm.getSerialPort())
-	doorLed.checkStatus()
+		doorLed = DoorLed.DoorLed(serialComm.getSerialPort())
+		doorLed.checkStatus()
 
-	ringLed = RingLed.RingLed(serialComm.getSerialPort())
-	ringLed.checkStatus()
+		ringLed = RingLed.RingLed(serialComm.getSerialPort())
+		ringLed.checkStatus()
 
-	matrixLed = MatrixLed.MatrixLed(serialComm.getSerialPort())
-	matrixLed.checkStatus()
-	#if(serialComm.isRunning()):
-		#first x led green
+		matrixLed = MatrixLed.MatrixLed(serialComm.getSerialPort())
+		matrixLed.checkStatus()
+		
+		tof1, tof2 = setupToF()
 
-	tof1, tof2 = setupToF()
+		reko = Rekognition.Rekognition(debug=True)
+		camera = MyCamera.MyCamera()
 
-	reko = Rekognition.Rekognition(debug=True)
-	camera = MyCamera.MyCamera()
+		miniservo = Servo.DoorServo()
+		#if no errors set current status = boot 
+		CURRENT_STATUS = "BOOT"
+	
+	if(CURRENT_STATUS == "BOOT"):
+		print("\n### Current status: {}".format(CURRENT_STATUS))
 
-	miniservo = Servo.DoorServo()
-	miniservo.openLid()
-
-	doorLed.turnOff()
-	isOpen = GPIO.input(DOOR_SENSOR)
-
-	ringLed.staticRed()
-	matrixLed.greenArrow()
-
-	while(isOpen):
-		doorLed.blink()
-		if(startUp):
-			print("chiudi lo sportello per avviare lo smartbin")
-			startUp = False
-
-	if(not isOpen):
-		print("avvio smartbin...")
-		startUp = False
-		is_running = True
-		doorLed.turnOff()
-	else:
-		print("ERROR STARTUP")
-		sys.exit()
-
-	ringLed.staticGreen()
-	#### START SMARTBIN ####
-	while is_running:
-		oldWasteIn = wasteIn
+		isOpen = GPIO.input(DOOR_SENSOR)
+		startUp = True
+		
 		if(isOpen):
+			CURRENT_STATUS = "DOOR_OPEN_ERROR"
+		else:
+			CURRENT_STATUS = "BOOT_DONE"
+		
+		#END BOOT
+	
+	if(CURRENT_STATUS == "DOOR_OPEN_ERROR"):
+		print("\n### Current status: {}".format(CURRENT_STATUS))
+		ringLed.staticRed()
+		matrixLed.redCross()
+		while(isOpen):
+			if(startUp):
+				print("--> chiudi lo sportello per avviare lo smartbin")
+				doorLed.blink()
+				startUp = False
+		#end of while
+		
+		CURRENT_STATUS == "BOOT_DONE"
+		
+	
+
+	if(CURRENT_STATUS == "BOOT_DONE"):
+		print("\n### Current status: {}".format(CURRENT_STATUS))
+		print("--> avvio smartbin...")
+		is_running = True
+		ringLed.staticGreen()
+		matrixLed.greenArrow()
+		#doorLed.turnOff()
+		CURRENT_STATUS = "IDLE"
+		
+	
+
+
+	
+	#### START SMARTBIN ####
+	
+
+	
+	while is_running:
+		if(OLD_STATUS is not CURRENT_STATUS):
+			print("\n### Current status: {} - old {}".format(CURRENT_STATUS, OLD_STATUS))
+			
+		OLD_STATUS = CURRENT_STATUS
+		
+		if(CURRENT_STATUS == "DOOR_OPEN"):
 			#TODO: create an array with last N values and check wether there are outliers
 			distance1 = tof1.get_distance()
 			distance2 = tof2.get_distance()
 
-			print(distance1, distance2)
-
-			if(distance1 < 0):
+			if(distance1 < 20):
+				distance1 = 666
+				deadToF1 = True
 				print("tof1 morto, restart")
-				ringLed.staticRed()
-				matrixLed.redCross()
-				time.sleep(10)
-				sys.exit()
-
-			if(distance2 < 0):
+				
+			if(distance2 < 20):
+				distance2 = 666
+				deadToF2 = True
 				print("tof2 morto, restart")
-				ringLed.staticRed()
-				matrixLed.redCross()
-				time.sleep(10)
-				sys.exit()
+				
 
-
+			print(distance1, distance2)
+			
+			oldWasteIn = wasteIn
 			if(distance1 < THRESHOLD_TOF or distance2 < THRESHOLD_TOF):
 				wasteIn = True
-				if (wasteIn and not oldWasteIn):
-					print("oggetto inserito")
-					camera.setCameraStatus(False)
-					camera.erasePath()
-					timer_pic = threading.Timer(TIMER_PHOTO, photo_ready, [camera])
-					timer_pic.start()
+				CURRENT_STATUS = "WASTE_IN"
+				
 
-		if(not isOpen and wasteIn):
+		elif(CURRENT_STATUS == "WASTE_IN"):
+			print("oggetto inserito")
+			camera.setCameraStatus(False)
+			camera.erasePath()
+			timer_pic = threading.Timer(TIMER_PHOTO, photo_ready, [camera])
+			timer_pic.start()
+			CURRENT_STATUS = "WAIT_CLOSE"
+			
+		
+		elif(CURRENT_STATUS == "WAIT_CLOSE"):
+			pass
+		
+		
+		elif(CURRENT_STATUS == "PHOTO"):
 			if(not camera.isPhotoDone()):
 				#doorLed.turnOn()
 				print("chiudo lo sportello")
@@ -243,8 +299,23 @@ if __name__ == "__main__":
 				wasteIn = False
 				oldWasteIn = False
 				miniservo.openLid()
+				CURRENT_STATUS = "IDLE"
 				
-			
+		if(CURRENT_STATUS == "IDLE"):
+			if(deadToF1 and deadToF2):
+				#reset tof
+				#close lid
+				#red light (x)
+				tof1.stop_ranging()
+				tof2.stop_ranging()
+				tof1, tof2 = setupToF()
+				deadToF1 = False
+				deadToF2 = False
+				#open lid
+				#green light (->)
+				
+				
+
 			
 		
 				
@@ -254,4 +325,4 @@ if __name__ == "__main__":
 	GPIO.output(SENSOR2, GPIO.LOW)
 	tof1.stop_ranging()
 	GPIO.output(SENSOR1, GPIO.LOW)
-	RingLed.staticRed()
+	ringLed.staticRed()

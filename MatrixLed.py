@@ -6,16 +6,16 @@ class MatrixLed():
 		self.ser = ser
 	
 	def turnOff(self):
-		self.ser.write(b'#M0!')
-		print("spengo matrix")
+		#self.ser.write(b'#M0!')
+		print("MATRIX: spengo matrix")
 
 	def greenArrow(self):
-		self.ser.write(b'#M1!')
-		print("green arrow")
+		#self.ser.write(b'#M1!')
+		print("MATRIX: green arrow")
 
 	def redCross(self):
-		self.ser.write(b'#M2!')
-		print("red matrix")
+		#self.ser.write(b'#M2!')
+		print("MATRIX: red matrix")
 
 	def arrowAnimation(self):
 		self.ser.write(b'#M3!')

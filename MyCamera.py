@@ -12,21 +12,17 @@ class MyCamera():
 		pygame.camera.init()
 		self.photoDone = False
 		self.file_name = None
-		self._initializeCamera() 
-		#if self.my_cam is not None:
-		#	print("ERROR!")
-		#	#TODO: check initialization
-		#	return None
-		#self.my_cam.stop()
-
+		self._initializeCamera()
+		
+		
 	def _initializeCamera(self):
 		try:
 			self.dev = pygame.camera.list_cameras()[0]
 		except IndexError as e:
-			print("no camera", e)
+			print("CAMERA: no camera", e)
 			return None
 		
-		print("camera device {}".format(self.dev))
+		print("CAMERA: camera device {}".format(self.dev))
 		self.my_cam = pygame.camera.Camera(self.dev, (320, 240))
 	
 		#while(True):
@@ -40,7 +36,8 @@ class MyCamera():
 		#return self.my_cam
 	
 	def stop(self):
-		self.my_cam.stop()
+		pass
+		#self.my_cam.stop()
 	
 	def takePhoto(self):
 		startTime = time.time()
@@ -50,7 +47,7 @@ class MyCamera():
 		print(self.my_cam)
 
 		self.photoDone = False
-		print("take the picture")
+		print("CAMERA: take the picture")
 		while(not self.photoDone):
 			try:
 				self.my_cam.start()
@@ -58,21 +55,21 @@ class MyCamera():
 				self.photoDone = True
 
 			except Exception as e:
-				print("unable to start the cam {}".format(e))
-				print("retry in 1 sec")
+				print("CAMERA: unable to start the cam {}".format(e))
+				print("CAMERA: retry in 1 sec")
 				time.sleep(1)
 		#self.my_cam.start()
 		#img = self.my_cam.get_image()
 		#self.photoDone = True
 
 		photoTime = time.time() - startTime
-		print("photo taken in  {}s".format(photoTime))
+		print("CAMERA: photo taken in  {}s".format(photoTime))
 		
 		#TODO: try except path?
 		pygame.image.save(img, self.file_name)
 		
 		saveTime = time.time() - photoTime - startTime 
-		print("photo saved in {}s".format(saveTime))
+		print("CAMERA: photo saved in {}s".format(saveTime))
 		self.my_cam.stop()
 		return self.file_name
 
