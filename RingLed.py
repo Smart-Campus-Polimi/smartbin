@@ -6,24 +6,39 @@ class RingLed():
 		self.ser = ser
 	
 	def turnOff(self):
-		self.ser.write(b'#R0!')
-		print("RING: spengo ring")
+		try:
+			self.ser.write(b'#R0!')
+			print("RING: spengo ring")
+		except serial.SerialException as e:
+			print("RING ERROR: spengo ring {}".format(e))
 
 	def staticGreen(self):
-		#self.ser.write(b'#R1!')
-		print("RING: led green")
+		try: 
+			self.ser.write(b'#R1!')
+			print("RING: led green")
+		except serial.SerialException as e:
+			print("RING ERROR: led green {}".format(e))
 
 	def staticRed(self):
-		#self.ser.write(b'#R2!')
-		print("RING: led red")
+		try:
+			self.ser.write(b'#R2!')
+			print("RING: led red")
+		except serial.SerialException as e:
+			print("RING ERROR: led red {}".format(e))
 
 	def breatheGreen(self):
-		#self.ser.write(b'#R3!')
-		print("RING: led breathe green")
+		try:
+			self.ser.write(b'#R3!')
+			print("RING: led breathe green")
+		except serial.SerialException as e:
+			print("RING ERROR: led breathe green {}".format(e))
 
 	def breatheRed(self):
-		#self.ser.write(b'#R4!')
-		print("RING: led breathe red")
+		try:
+			self.ser.write(b'#R4!')
+			print("RING: led breathe red")
+		except serial.SerialException as e:
+			print("RING ERROR: led breathe red {}".format(e))
 
 	def checkStatus(self):
 		pass

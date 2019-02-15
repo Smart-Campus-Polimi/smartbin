@@ -34,3 +34,9 @@ class SerialHandler():
 
 	def isRunning(self):
 		return self.serialStatus
+		
+	def checkStatus(self):
+		if(self.ser is None):
+			return False
+		
+		return True

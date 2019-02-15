@@ -25,6 +25,7 @@
 import time
 from ctypes import *
 import smbus
+import subprocess
 
 VL53L0X_GOOD_ACCURACY_MODE      = 0   # Good Accuracy mode
 VL53L0X_BETTER_ACCURACY_MODE    = 1   # Better Accuracy mode
@@ -103,6 +104,18 @@ class VL53L0X(object):
         """Get distance from VL53L0X ToF Sensor"""
         return tof_lib.getDistance(self.my_object_number)
 
+
+    def checkStatus(self, i2c_dev):
+        """Check existence of TOF"""
+        try: 
+            output = subprocess.check_output("i2cdetect -y 1 | grep \""+i2c_dev+"\"", shell=True)
+        except subprocess.CalledProcessError as e:
+            print e.output
+        
+        if(output is None):
+            return False
+        else:
+            return True
     # This function included to show how to access the ST library directly
     # from python instead of through the simplified interface
     def get_timing(self):

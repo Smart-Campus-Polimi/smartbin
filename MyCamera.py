@@ -24,10 +24,8 @@ class MyCamera():
 		
 	def checkStatus(self):
 		if(self.dev is None):
-			print("none dev=?")
 			return False
 		if(self.my_cam is None):
-			print("none cam=?")
 			return False
 		
 		return True

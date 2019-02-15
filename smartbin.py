@@ -19,17 +19,14 @@ import Servo
 
 GPIO.setmode(GPIO.BCM)
 
-#STATES
-STATES = ["INIT", "BOOT", "BOOT_DONE", "IDLE", "DOOR_OPEN_ERROR", "DOOR_OPEN_EMPTY", "DOOR_CLOSED_OBJECT", "PHOTO", "MOTORS", "TOF_RESET"]
-
 CURRENT_STATUS = "INIT"
 OLD_STATUS = "NONE"
 
 
 
 THRESHOLD_TOF = 300
-TIMER_PHOTO = 15 #seconds
-TIMER_DOOR = 20 #seconds
+TIMER_PHOTO = 5 #seconds
+TIMER_DOOR = 10 #seconds
 
 #### PATHS ####
 #WEBCAM = '~/smartbin/scripts/webcam.sh'
@@ -38,7 +35,10 @@ PICTURE_DIRECTORY = '~/pictures/'
 #### GPIO PINS ####
 DOOR_SENSOR = 18
 SENSOR1 = 20 #tof1
-SENSOR2 = 16 #to2
+SENSOR2 = 16 #tof2
+SENSOR_UNSORTED = 21 #tof unsorted
+SENSOR_PLASTIC = 19 #tof unsorted
+
 
 
 #### VARS ####
@@ -59,29 +59,33 @@ def signal_handler(signal, frame):
 	doorLed.turnOff()
 	ringLed.turnOff()
 	miniservo.openLid()
-	camera.stop()
 	sys.exit(0)
 
 
 ####### SETUP TOF #######
 def setupToF():
-	ringLed.waitingForToF()
-
 	GPIO.setwarnings(False)
 
 	# Setup GPIO for shutdown pins on each VL53L0X
 	GPIO.setup(SENSOR1, GPIO.OUT)
 	GPIO.setup(SENSOR2, GPIO.OUT)
+	GPIO.setup(SENSOR_UNSORTED, GPIO.OUT)
+	GPIO.setup(SENSOR_PLASTIC, GPIO.OUT)
+
 
 	# Set all shutdown pins low to turn off each VL53L0X
 	GPIO.output(SENSOR1, GPIO.LOW)
 	GPIO.output(SENSOR2, GPIO.LOW)
+	GPIO.output(SENSOR_UNSORTED, GPIO.LOW)
+	GPIO.output(SENSOR_PLASTIC, GPIO.LOW)
 
 	time.sleep(0.50)
 
 	tof = VL53L0X.VL53L0X(address=0x2B)
 	tof1 = VL53L0X.VL53L0X(address=0x2D)
-
+	tof_u = VL53L0X.VL53L0X(address=0x29)
+	tof_p = VL53L0X.VL53L0X(address=0x2C)
+	
 	GPIO.output(SENSOR1, GPIO.HIGH)
 	time.sleep(0.50)
 	tof.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
@@ -89,10 +93,16 @@ def setupToF():
 	GPIO.output(SENSOR2, GPIO.HIGH)
 	time.sleep(0.50)
 	tof1.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
+	
+	GPIO.output(SENSOR_UNSORTED, GPIO.HIGH)
+	time.sleep(0.50)
+	tof_u.start_ranging(VL53L0X.VL53L0X_GOOD_ACCURACY_MODE)
+	
+	GPIO.output(SENSOR_PLASTIC, GPIO.HIGH)
+	time.sleep(0.50)
+	tof_p.start_ranging(VL53L0X.VL53L0X_GOOD_ACCURACY_MODE)
 
-	ringLed.ToFRunning()
-
-	return tof, tof1
+	return tof, tof1, tof_u, tof_p
 
 
 
@@ -182,14 +192,37 @@ if __name__ == "__main__":
 			matrixLed = MatrixLed.MatrixLed(serialComm.getSerialPort())
 			matrixLed.checkStatus()
 			
-			tof1, tof2 = setupToF()
-
+			tof1, tof2, tof_unsorted, tof_plastic = setupToF()
+			
+			
 			reko = Rekognition.Rekognition(debug=True)
+			
 			camera = MyCamera.MyCamera()
-
+			
 			miniservo = Servo.DoorServo()
-			#if no errors set current status = boot 
-			CURRENT_STATUS = "BOOT"
+			
+			CURRENT_STATUS = "CHECK_INIT"
+		
+		elif(CURRENT_STATUS == "CHECK_INIT"):
+			print("\n### Current status: {}".format(CURRENT_STATUS))
+			
+			errors = []
+			if(not camera.checkStatus()): 
+				errors.append("CAMERA")
+			if(not serialComm.checkStatus()):
+				errors.append("SERIAL")
+			if(not tof1.checkStatus("2b")):
+				errors.append("TOF1")
+			if(not tof2.checkStatus("2d")):
+				errors.append("TOF2")
+
+			if(len(errors) < 1):		
+				CURRENT_STATUS = "BOOT"
+			else:
+				CURRENT_STATUS = "INIT_ERROR" 
+				
+				#if no errors set current status = boot
+			
 		
 		elif(CURRENT_STATUS == "BOOT"):
 			print("\n### Current status: {}".format(CURRENT_STATUS))
@@ -227,6 +260,13 @@ if __name__ == "__main__":
 			matrixLed.greenArrow()
 			#doorLed.turnOff()
 			CURRENT_STATUS = "IDLE"
+			
+		
+		elif(CURRENT_STATUS == "INIT_ERROR"):
+			print("GODAMN!")
+			print("errors come from {}".format(errors))
+			print("restart")
+			sys.exit()
 		
 
 
@@ -244,6 +284,8 @@ if __name__ == "__main__":
 			#TODO: create an array with last N values and check wether there are outliers
 			distance1 = tof1.get_distance()
 			distance2 = tof2.get_distance()
+			d_test = tof_unsorted.get_distance()
+			d_plastic = tof_plastic.get_distance()
 
 			if(distance1 < 20):
 				distance1 = 666
@@ -256,11 +298,10 @@ if __name__ == "__main__":
 				print("tof2 morto, restart")
 				
 
-			print(distance1, distance2)
+			print(distance1, distance2, d_test, d_plastic)
 			
 			oldWasteIn = wasteIn
 			if(distance1 < THRESHOLD_TOF or distance2 < THRESHOLD_TOF):
-				#wasteIn = True
 				CURRENT_STATUS = "WASTE_IN"
 			
 				
@@ -281,15 +322,15 @@ if __name__ == "__main__":
 		
 		##### PHOTO #####
 		elif(CURRENT_STATUS == "PHOTO"):
-			#doorLed.turnOn()
+			doorLed.turnOn()
 			print("chiudo lo sportello")
 			miniservo.closeLid()
 			print("scatta foto da chiusura porta")
 			timer_pic.cancel()
 			camera.takePhoto()
-
+			doorLed.turnOff()
 			CURRENT_STATUS = "PHOTO_DONE"
-				#doorLed.turnOff()
+				
 		
 		
 		##### PHOTO DONE #####	
@@ -329,15 +370,17 @@ if __name__ == "__main__":
 		elif(CURRENT_STATUS == "IDLE"):
 			if(deadToF1 and deadToF2):
 				#reset tof
-				#close lid
-				#red light (x)
+				miniservo.closeLid()
+				ringLed.staticRed()
+				matrixLed.redCross()
 				tof1.stop_ranging()
 				tof2.stop_ranging()
 				tof1, tof2 = setupToF()
 				deadToF1 = False
 				deadToF2 = False
-				#open lid
-				#green light (->)
+				miniservo.openLid()
+				ringLed.staticGreen()
+				matrixLed.greenArrow()
 
 		
 				

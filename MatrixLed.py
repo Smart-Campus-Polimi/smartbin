@@ -6,19 +6,32 @@ class MatrixLed():
 		self.ser = ser
 	
 	def turnOff(self):
-		#self.ser.write(b'#M0!')
-		print("MATRIX: spengo matrix")
+		try:
+			self.ser.write(b'#M0!')
+			print("MATRIX: spengo matrix")
+		except serial.SerialException as e:
+			print("MATRIX: spengo matrix {}".format(e))
 
 	def greenArrow(self):
-		#self.ser.write(b'#M1!')
-		print("MATRIX: green arrow")
+		try:
+			self.ser.write(b'#M1!')
+			print("MATRIX: green arrow")
+		except serial.SerialException as e:
+			print("MATRIX ERROR: green arrow {}".format(e))
 
 	def redCross(self):
-		#self.ser.write(b'#M2!')
-		print("MATRIX: red matrix")
+		try:
+			self.ser.write(b'#M2!')
+			print("MATRIX: red cross")
+		except serial.SerialException as e:
+			print("MATRIX ERROR: red cross {}".format(e))
 
 	def arrowAnimation(self):
-		self.ser.write(b'#M3!')
+		try:
+			self.ser.write(b'#M3!')
+			print("MATRIX: arrow animation")
+		except serial.SerialException as e:
+			print("MATRIX ERROR: arrow animation {}".format(e))
 		
 
 	def checkStatus(self):
