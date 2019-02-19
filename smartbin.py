@@ -37,7 +37,7 @@ DOOR_SENSOR = 18
 SENSOR1 = 20 #tof1
 SENSOR2 = 16 #tof2
 SENSOR_UNSORTED = 21 #tof unsorted
-SENSOR_PLASTIC = 19 #tof unsorted
+SENSOR_PLASTIC = 26 #tof plastic
 
 
 
@@ -83,8 +83,9 @@ def setupToF():
 
 	tof = VL53L0X.VL53L0X(address=0x2B)
 	tof1 = VL53L0X.VL53L0X(address=0x2D)
+	tof_p = VL53L0X.VL53L0X(address=0x27)
 	tof_u = VL53L0X.VL53L0X(address=0x29)
-	tof_p = VL53L0X.VL53L0X(address=0x2C)
+	
 	
 	GPIO.output(SENSOR1, GPIO.HIGH)
 	time.sleep(0.50)
@@ -96,11 +97,11 @@ def setupToF():
 	
 	GPIO.output(SENSOR_UNSORTED, GPIO.HIGH)
 	time.sleep(0.50)
-	tof_u.start_ranging(VL53L0X.VL53L0X_GOOD_ACCURACY_MODE)
+	tof_p.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
 	
 	GPIO.output(SENSOR_PLASTIC, GPIO.HIGH)
 	time.sleep(0.50)
-	tof_p.start_ranging(VL53L0X.VL53L0X_GOOD_ACCURACY_MODE)
+	tof_u.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
 
 	return tof, tof1, tof_u, tof_p
 
