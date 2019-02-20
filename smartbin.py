@@ -7,6 +7,7 @@ import threading
 import subprocess
 import os
 import signal 
+from random import randint
 
 #my imports
 import Rekognition
@@ -16,6 +17,7 @@ import MatrixLed
 import MyCamera
 import SerialHandler
 import Servo
+import RingWasteLed
 
 GPIO.setmode(GPIO.BCM)
 
@@ -52,6 +54,12 @@ oldWasteIn = False
 deadToF1 = False
 deadToF2 = False
 
+fill_levels = {
+				"unsorted": 0,
+				"plastic": 0,
+				"paper": 0,
+				"glass": 0
+			   }
 
 ####### SIGNAL HANDLER ######
 def signal_handler(signal, frame):
@@ -63,7 +71,7 @@ def signal_handler(signal, frame):
 
 
 ####### SETUP TOF #######
-def setupToF():
+def setupToF(all_tof=True):
 	GPIO.setwarnings(False)
 
 	# Setup GPIO for shutdown pins on each VL53L0X
@@ -95,15 +103,18 @@ def setupToF():
 	time.sleep(0.50)
 	tof1.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
 	
-	GPIO.output(SENSOR_UNSORTED, GPIO.HIGH)
-	time.sleep(0.50)
-	tof_p.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
-	
-	GPIO.output(SENSOR_PLASTIC, GPIO.HIGH)
-	time.sleep(0.50)
-	tof_u.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
+	if(all_tof):
+		GPIO.output(SENSOR_UNSORTED, GPIO.HIGH)
+		time.sleep(0.50)
+		tof_p.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
+		
+		GPIO.output(SENSOR_PLASTIC, GPIO.HIGH)
+		time.sleep(0.50)
+		tof_u.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
 
-	return tof, tof1, tof_u, tof_p
+		return tof, tof1, tof_u, tof_p
+	
+	return tof, tof1
 
 
 
@@ -112,7 +123,6 @@ def door_callback(channel):
 	global CURRENT_STATUS, OLD_STATUS
 	oldIsOpen = isOpen
 	global timer_door
-	#global wasteIn
 
 	isOpen = GPIO.input(DOOR_SENSOR)
 
@@ -132,7 +142,7 @@ def door_callback(channel):
 		if(CURRENT_STATUS == "WASTE_IN" or CURRENT_STATUS == "WAIT_CLOSE"):
 			CURRENT_STATUS = "PHOTO"
 		
-		doorLed.turnOff() #move up in door idle
+		doorLed.turnOff() #move up in current status idle (if door open)
 		if(timer_door is not None):
 			if(timer_door.is_alive()):
 				timer_door.cancel()
@@ -192,6 +202,9 @@ if __name__ == "__main__":
 
 			matrixLed = MatrixLed.MatrixLed(serialComm.getSerialPort())
 			matrixLed.checkStatus()
+			
+			unsortedRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'U')
+			unsortedRing.checkStatus()
 			
 			tof1, tof2, tof_unsorted, tof_plastic = setupToF()
 			
@@ -260,7 +273,7 @@ if __name__ == "__main__":
 			ringLed.staticGreen()
 			matrixLed.greenArrow()
 			#doorLed.turnOff()
-			CURRENT_STATUS = "IDLE"
+			CURRENT_STATUS = "READ_FILL_LEVEL"
 			
 		
 		elif(CURRENT_STATUS == "INIT_ERROR"):
@@ -285,21 +298,20 @@ if __name__ == "__main__":
 			#TODO: create an array with last N values and check wether there are outliers
 			distance1 = tof1.get_distance()
 			distance2 = tof2.get_distance()
-			d_test = tof_unsorted.get_distance()
-			d_plastic = tof_plastic.get_distance()
-
-			if(distance1 < 20):
+			
+			print(distance1, distance2)
+			
+						
+			if(distance1 < 5):
 				distance1 = 666
 				deadToF1 = True
 				print("tof1 morto, restart")
 				
-			if(distance2 < 20):
+			if(distance2 < 5):
 				distance2 = 666
 				deadToF2 = True
 				print("tof2 morto, restart")
 				
-
-			print(distance1, distance2, d_test, d_plastic)
 			
 			oldWasteIn = wasteIn
 			if(distance1 < THRESHOLD_TOF or distance2 < THRESHOLD_TOF):
@@ -364,11 +376,38 @@ if __name__ == "__main__":
 			ringLed.staticGreen()
 	
 			miniservo.openLid()
-			CURRENT_STATUS = "IDLE"
+			CURRENT_STATUS = "READ_FILL_LEVEL"
 			
+		
+		##### READ WASTE #####
+		elif(CURRENT_STATUS == "READ_FILL_LEVEL"):
+			for key in fill_levels.keys():
+				if key == "unsorted":
+					fill_u = tof_unsorted.get_distance()
+					if(fill_u > 0):
+						fill_levels[key] = int((fill_u/300.0) * 100.0)
+						unsortedRing.setWaste(20)
+				if key == "plastic":
+					fill_p = tof_plastic.get_distance()
+					if(fill_p > 0):
+						fill_levels[key] = int((fill_p/300.0) * 100.0)
+				if key == "paper":
+					fill_levels[key] = randint(0, 100)
+				if key == "glass":
+					fill_levels[key] = randint(0, 100)
+			
+			
+			for key, val in fill_levels.items():
+				print("{}: {}".format(key, val))
+			
+			
+			CURRENT_STATUS = "IDLE"
+				
+				
 			
 		##### IDLE #####
 		elif(CURRENT_STATUS == "IDLE"):
+			
 			if(deadToF1 and deadToF2):
 				#reset tof
 				miniservo.closeLid()
@@ -376,7 +415,7 @@ if __name__ == "__main__":
 				matrixLed.redCross()
 				tof1.stop_ranging()
 				tof2.stop_ranging()
-				tof1, tof2 = setupToF()
+				tof1, tof2 = setupToF(all_tof = False)
 				deadToF1 = False
 				deadToF2 = False
 				miniservo.openLid()
