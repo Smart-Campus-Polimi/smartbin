@@ -27,6 +27,7 @@ OLD_STATUS = "NONE"
 
 
 THRESHOLD_TOF = 300
+BIN_HEIGHT = 800.0
 TIMER_PHOTO = 5 #seconds
 TIMER_DOOR = 10 #seconds
 
@@ -147,21 +148,6 @@ def door_callback(channel):
 			if(timer_door.is_alive()):
 				timer_door.cancel()
 
-def handleWaste(imageFile):
-	waste_type = reko.getLabels(imageFile)
-	print("oggetto riconosciuto, e':")
-	print(waste_type)
-	if(waste_type != "EMPTY"):
-		print("illumino led")
-		ringLed.breatheGreen()
-		print("aziono i motori")
-		time.sleep(5)
-		print("azione finita")
-		ringLed.staticGreen()
-	else:
-		print("vuoto")
-	
-
 
 def photo_ready(my_cam):
 	print("Scatto foto da timer")
@@ -169,12 +155,21 @@ def photo_ready(my_cam):
 	CURRENT_STATUS = "WAIT_CLOSE"
 
 def door_forgotten_open():
+	#status!
 	print("porta aprta da troppo tempo")
 	global isOpen
 	doorLed.blink()
 	while(isOpen):
 		#doorLed.blink()
 		pass
+
+def read_bin_level(tof):
+	fill_lev = tof.get_distance()
+	if(fill_lev > 0):
+		level = int((fill_lev/BIN_HEIGHT) * 100.0)
+		if(level > 100):
+			level = 100
+		return level	
 
 ##### DOOR SETUP #####
 GPIO.setup(DOOR_SENSOR, GPIO.IN, pull_up_down = GPIO.PUD_UP)
@@ -205,9 +200,17 @@ if __name__ == "__main__":
 			
 			unsortedRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'U')
 			unsortedRing.checkStatus()
+
+			plasticRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'P')
+			plasticRing.checkStatus()
+
+			paperRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'C')
+			paperRing.checkStatus()
+
+			glassRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'G')
+			glassRing.checkStatus()		
 			
 			tof1, tof2, tof_unsorted, tof_plastic = setupToF()
-			
 			
 			reko = Rekognition.Rekognition(debug=True)
 			
@@ -358,7 +361,20 @@ if __name__ == "__main__":
 			#camera.erasePath()			
 			print("oggetto riconosciuto, e': {}".format(waste_type))
 
+			if(waste_type is "UNSORTED"):
+				unsortedRing.setWaste(333)
+
+			elif(waste_type is "PLASTIC"):
+				plasticRing.setWaste(333)
+
+			elif(waste_type is "PAPER"):
+				paperRing.setWaste(333)
+
+			elif(waste_type is "GLASS"):
+				glassRing.setWaste(333)
 		
+			
+
 			if(waste_type is "EMPTY"):
 				CURRENT_STATUS = "IDLE"
 				miniservo.openLid()
@@ -383,18 +399,17 @@ if __name__ == "__main__":
 		elif(CURRENT_STATUS == "READ_FILL_LEVEL"):
 			for key in fill_levels.keys():
 				if key == "unsorted":
-					fill_u = tof_unsorted.get_distance()
-					if(fill_u > 0):
-						fill_levels[key] = int((fill_u/300.0) * 100.0)
-						unsortedRing.setWaste(20)
+					fill_levels[key] = read_bin_level(tof_unsorted)
+					unsortedRing.setWaste(fill_levels[key])
 				if key == "plastic":
-					fill_p = tof_plastic.get_distance()
-					if(fill_p > 0):
-						fill_levels[key] = int((fill_p/300.0) * 100.0)
+					fill_levels[key] = read_bin_level(tof_plastic)
+					plasticRing.setWaste(fill_levels[key])
 				if key == "paper":
 					fill_levels[key] = randint(0, 100)
+					paperRing.setWaste(fill_levels[key])
 				if key == "glass":
 					fill_levels[key] = randint(0, 100)
+					glassRing.setWaste(fill_levels[key])
 			
 			
 			for key, val in fill_levels.items():
@@ -402,7 +417,7 @@ if __name__ == "__main__":
 			
 			
 			CURRENT_STATUS = "IDLE"
-				
+		
 				
 			
 		##### IDLE #####
