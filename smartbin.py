@@ -67,6 +67,9 @@ def signal_handler(signal, frame):
 	print("Exit from smartbin!")
 	doorLed.turnOff()
 	ringLed.turnOff()
+	matrixLed.turnOff()
+	for r in wasteRings:
+		r.setWaste(0)
 	miniservo.openLid()
 	sys.exit(0)
 
@@ -199,16 +202,16 @@ if __name__ == "__main__":
 			matrixLed.checkStatus()
 			
 			unsortedRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'U')
-			unsortedRing.checkStatus()
 
 			plasticRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'P')
-			plasticRing.checkStatus()
 
 			paperRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'C')
-			paperRing.checkStatus()
 
 			glassRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'G')
-			glassRing.checkStatus()		
+			
+			wasteRings = [unsortedRing, plasticRing, paperRing, glassRing]
+			for r in wasteRings:
+				r.checkStatus()
 			
 			tof1, tof2, tof_unsorted, tof_plastic = setupToF()
 			
