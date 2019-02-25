@@ -360,10 +360,15 @@ if __name__ == "__main__":
 		
 		##### REKOGNITION #####
 		elif(CURRENT_STATUS == "REKOGNITION"):
+			for r in wasteRings:
+				r.setWaste(0)
 			waste_type = reko.getLabels(camera.currentPath())
 			#camera.erasePath()			
 			print("oggetto riconosciuto, e': {}".format(waste_type))
 
+			for r in wasteRings:
+				r.setWaste(0)
+				
 			if(waste_type is "UNSORTED"):
 				unsortedRing.setWaste(333)
 
@@ -412,6 +417,7 @@ if __name__ == "__main__":
 					paperRing.setWaste(fill_levels[key])
 				if key == "glass":
 					fill_levels[key] = randint(0, 100)
+					print(fill_levels[key])
 					glassRing.setWaste(fill_levels[key])
 			
 			
@@ -433,7 +439,7 @@ if __name__ == "__main__":
 				matrixLed.redCross()
 				tof1.stop_ranging()
 				tof2.stop_ranging()
-				tof1, tof2 = setupToF(all_tof = False)
+				tof1, tof2, tof_unsorted, tof_plastic = setupToF(all_tof = True)
 				deadToF1 = False
 				deadToF2 = False
 				miniservo.openLid()

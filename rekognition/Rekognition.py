@@ -6,7 +6,7 @@ import pprint as pp
 
 class Rekognition():
 		def __init__(self,debug=False):
-			self.session = boto3.Session(profile_name='adminuser')
+			self.session = boto3.Session(profile_name='default')
 			self.rekognition = self.session.client('rekognition')
 			self.debug = debug
 			self.requestTime = 0
@@ -54,7 +54,7 @@ class Rekognition():
 
 			with open(imageFile, 'rb') as image: 
 				rekognition_response = self.rekognition.detect_labels(
-							Image = {'Bytes': image},
+							Image = {'Bytes': image.read()},
 							MaxLabels=10,
 							MinConfidence=50)
 

@@ -110,7 +110,7 @@ class VL53L0X(object):
         try: 
             output = subprocess.check_output("i2cdetect -y 1 | grep \""+i2c_dev+"\"", shell=True)
         except subprocess.CalledProcessError as e:
-            print e.output
+            print(e.output)
         
         if(output is None):
             return False
