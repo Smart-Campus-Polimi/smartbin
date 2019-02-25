@@ -10,6 +10,8 @@ def parseWaste(key):
         return 'PAPER'
     elif(key == '4'):
         return 'GLASS'
+    elif(key == '5'):
+        return 'EMPTY'
     else:
         return 'UNSORTED'
 

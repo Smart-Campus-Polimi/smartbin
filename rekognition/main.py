@@ -11,6 +11,7 @@ import sys
 import csv
 import pygame
 import pygame.camera
+import datetime
 
 
 import MyCheat as c
@@ -39,16 +40,18 @@ def signal_handler(signal, frame):
 	t.stop()
 	sys.exit(0)
 
-def takePhoto(my_cam):
+def takePhoto(my_cam,name):
 	startTime = time.time()
+	my_cam.start()
 	#file_name = subprocess.check_output(os.path.expanduser(WEBCAM))
-	file_name = os.path.expanduser(DIRECTORY)+str("my_name.jpg") 
+	file_name = os.path.expanduser(DIRECTORY)+name+"_"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")+str(".png") 
 	img = my_cam.get_image()
 	photoTime = time.time() - startTime
 	print("photo taken in  {}s".format(photoTime))
 	pygame.image.save(img, file_name)
 	saveTime = time.time() - startTime 
 	print("photo saved in {}s".format(saveTime))
+	my_cam.stop()
 	return file_name, photoTime, saveTime
 
 
@@ -64,7 +67,7 @@ if __name__ == "__main__":
 		sys.exit()
 	
 	cam = pygame.camera.Camera(dev, (320, 240))
-	cam.start()
+	#cam.start()
 
 	if(RASP and not KEY_INPUT):
 		tof = VL53L0X.VL53L0X()
@@ -80,7 +83,7 @@ if __name__ == "__main__":
 			if(KEY_INPUT):
 				cheat_waste = raw_input('picture?')
 				cheat_waste = c.parseWaste(cheat_waste)
-				file_name, photoTime, saveTime = takePhoto(cam)
+				file_name, photoTime, saveTime = takePhoto(cam, cheat_waste)
 				isPhoto = True
 			if(not KEY_INPUT):
 				distance = tof.get_distance()
@@ -88,7 +91,7 @@ if __name__ == "__main__":
 					#print(distance)
 					pass
 					if(distance < THRESHOLD):
-						file_name, photoTime, saveTime, byte_photo = takePhoto(cam)
+						file_name, photoTime, saveTime = takePhoto(cam, "NONE")
                 				isPhoto = True
 		else:
 			file_name = imagePath
