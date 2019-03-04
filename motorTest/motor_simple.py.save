@@ -1,6 +1,6 @@
 import pigpio
 
-PIN_MOTOR = 24
+PIN_MOTOR = 17
 
 pi = pigpio.pi()
 

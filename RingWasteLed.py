@@ -7,9 +7,10 @@ class RingWasteLed():
 		self.waste_type = waste_type
 	
 	def setWaste(self, value):
+		msg = '#'+self.waste_type+str(value)+'!'
 		try:
 			print(value)
-			self.ser.write(bytes('#'+self.waste_type+str(value)+'!', encoding='utf-8'))
+			self.ser.write(str.encode(msg))
 			print("WASTE: set {} to {}%".format(self.waste_type, value))
 		except serial.SerialException as e:
 			print("WASTE ERROR: set to level {}".format(e))

@@ -70,7 +70,7 @@ def signal_handler(signal, frame):
 	matrixLed.turnOff()
 	for r in wasteRings:
 		r.setWaste(0)
-	miniservo.openLid()
+	doorServo.openLid()
 	sys.exit(0)
 
 
@@ -81,22 +81,22 @@ def setupToF(all_tof=True):
 	# Setup GPIO for shutdown pins on each VL53L0X
 	GPIO.setup(SENSOR1, GPIO.OUT)
 	GPIO.setup(SENSOR2, GPIO.OUT)
-	GPIO.setup(SENSOR_UNSORTED, GPIO.OUT)
-	GPIO.setup(SENSOR_PLASTIC, GPIO.OUT)
+	#GPIO.setup(SENSOR_UNSORTED, GPIO.OUT)
+	#GPIO.setup(SENSOR_PLASTIC, GPIO.OUT)
 
 
 	# Set all shutdown pins low to turn off each VL53L0X
 	GPIO.output(SENSOR1, GPIO.LOW)
 	GPIO.output(SENSOR2, GPIO.LOW)
-	GPIO.output(SENSOR_UNSORTED, GPIO.LOW)
-	GPIO.output(SENSOR_PLASTIC, GPIO.LOW)
+	#GPIO.output(SENSOR_UNSORTED, GPIO.LOW)
+	#GPIO.output(SENSOR_PLASTIC, GPIO.LOW)
 
 	time.sleep(0.50)
 
 	tof = VL53L0X.VL53L0X(address=0x2B)
 	tof1 = VL53L0X.VL53L0X(address=0x2D)
-	tof_p = VL53L0X.VL53L0X(address=0x27)
-	tof_u = VL53L0X.VL53L0X(address=0x29)
+	#tof_p = VL53L0X.VL53L0X(address=0x27)
+	#tof_u = VL53L0X.VL53L0X(address=0x29)
 	
 	
 	GPIO.output(SENSOR1, GPIO.HIGH)
@@ -213,13 +213,16 @@ if __name__ == "__main__":
 			for r in wasteRings:
 				r.checkStatus()
 			
-			tof1, tof2, tof_unsorted, tof_plastic = setupToF()
-			
+			#tof1, tof2, tof_unsorted, tof_plastic = setupToF()
+			tof1, tof2 = setupToF(False)
 			reko = Rekognition.Rekognition(debug=True)
 			
 			camera = MyCamera.MyCamera()
 			
-			miniservo = Servo.DoorServo()
+			doorServo = Servo.DoorServo()
+			
+			palettaServo = Servo.PalettaServo()
+			diskServo =  Servo.DiskServo()
 			
 			CURRENT_STATUS = "CHECK_INIT"
 		
@@ -318,6 +321,8 @@ if __name__ == "__main__":
 				deadToF2 = True
 				print("tof2 morto, restart")
 				
+			if(deadToF1 and deadToF2):
+				CURRENT_STATUS = "WASTE_IN"
 			
 			oldWasteIn = wasteIn
 			if(distance1 < THRESHOLD_TOF or distance2 < THRESHOLD_TOF):
@@ -343,7 +348,7 @@ if __name__ == "__main__":
 		elif(CURRENT_STATUS == "PHOTO"):
 			doorLed.turnOn()
 			print("chiudo lo sportello")
-			miniservo.closeLid()
+			doorServo.closeLid()
 			print("scatta foto da chiusura porta")
 			timer_pic.cancel()
 			camera.takePhoto()
@@ -357,15 +362,18 @@ if __name__ == "__main__":
 			#camera.setCameraStatus(False)
 			CURRENT_STATUS = "REKOGNITION"
 		
-		
+		 
 		##### REKOGNITION #####
 		elif(CURRENT_STATUS == "REKOGNITION"):
+			matrixLed.turnOff()
 			for r in wasteRings:
 				r.setWaste(0)
 			waste_type = reko.getLabels(camera.currentPath())
 			#camera.erasePath()			
 			print("oggetto riconosciuto, e': {}".format(waste_type))
-
+			
+			
+			
 			for r in wasteRings:
 				r.setWaste(0)
 				
@@ -385,21 +393,32 @@ if __name__ == "__main__":
 
 			if(waste_type is "EMPTY"):
 				CURRENT_STATUS = "IDLE"
-				miniservo.openLid()
+				doorServo.openLid()
 			else:
 				CURRENT_STATUS = "MOTORS"
 		
 		
 		##### MOTORS #####
 		elif(CURRENT_STATUS == "MOTORS"):
+			print("aziono i motori")
+			
+			#go
+			palettaServo.movePaletta(waste_type)
+			diskServo.moveDisk(waste_type)
 			print("illumino led")
 			ringLed.breatheGreen()
-			print("aziono i motori")
-			time.sleep(3)
+			time.sleep(1.5)
+			
+			
+			
+			#back
+			diskServo.moveDisk("HOME")
+			palettaServo.movePaletta("HOME")
+			time.sleep(1.5)
 			print("azione finita")
 			ringLed.staticGreen()
 	
-			miniservo.openLid()
+			doorServo.openLid()
 			CURRENT_STATUS = "READ_FILL_LEVEL"
 			
 		
@@ -407,24 +426,25 @@ if __name__ == "__main__":
 		elif(CURRENT_STATUS == "READ_FILL_LEVEL"):
 			for key in fill_levels.keys():
 				if key == "unsorted":
-					fill_levels[key] = read_bin_level(tof_unsorted)
+					fill_levels[key] = randint(0, 100)
+					#fill_levels[key] = read_bin_level(tof_unsorted)
 					unsortedRing.setWaste(fill_levels[key])
 				if key == "plastic":
-					fill_levels[key] = read_bin_level(tof_plastic)
+					#fill_levels[key] = read_bin_level(tof_plastic)
+					fill_levels[key] = randint(0, 100)
 					plasticRing.setWaste(fill_levels[key])
 				if key == "paper":
 					fill_levels[key] = randint(0, 100)
 					paperRing.setWaste(fill_levels[key])
 				if key == "glass":
 					fill_levels[key] = randint(0, 100)
-					print(fill_levels[key])
 					glassRing.setWaste(fill_levels[key])
 			
 			
 			for key, val in fill_levels.items():
 				print("{}: {}".format(key, val))
 			
-			
+			matrixLed.greenArrow()
 			CURRENT_STATUS = "IDLE"
 		
 				
@@ -434,7 +454,7 @@ if __name__ == "__main__":
 			
 			if(deadToF1 and deadToF2):
 				#reset tof
-				miniservo.closeLid()
+				doorServo.closeLid()
 				ringLed.staticRed()
 				matrixLed.redCross()
 				tof1.stop_ranging()
@@ -442,7 +462,7 @@ if __name__ == "__main__":
 				tof1, tof2, tof_unsorted, tof_plastic = setupToF(all_tof = True)
 				deadToF1 = False
 				deadToF2 = False
-				miniservo.openLid()
+				doorServo.openLid()
 				ringLed.staticGreen()
 				matrixLed.greenArrow()
 

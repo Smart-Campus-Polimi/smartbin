@@ -99,7 +99,8 @@ if __name__ == "__main__":
 		
 		if(isPhoto):
 			print(file_name)
-			waste_type = reko.getLabels(os.path.expanduser(file_name))
+			#waste_type = reko.getLabels(os.path.expanduser(file_name))
+			waste_type = "ASD"
 			if not q.empty():
 				cheat_waste = q.get()
 			
@@ -117,5 +118,5 @@ if __name__ == "__main__":
 				filewriter.writerow(["{0:.4f}".format(photoT), "{0:.4f}".format(requestT), "{0:.4f}".format(labelingT), "{0:.4f}".format(totalT)])
 			isPhoto = False
 			cheat_waste = None
-			time.sleep(1)
+			#time.sleep(1)
 
