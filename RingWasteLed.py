@@ -9,11 +9,16 @@ class RingWasteLed():
 	def setWaste(self, value):
 		msg = '#'+self.waste_type+str(value)+'!'
 		try:
-			print(value)
 			self.ser.write(str.encode(msg))
 			print("WASTE: set {} to {}%".format(self.waste_type, value))
 		except serial.SerialException as e:
 			print("WASTE ERROR: set to level {}".format(e))
-
+	
+	def turnOffRing(self):
+		msg = '#0!'
+		try:
+			self.ser.write(str.encode(msg))
+		except serial.SerialException as e:
+			print("WASTE ERROR: set to level {}".format(e))
 	def checkStatus(self):
 		pass

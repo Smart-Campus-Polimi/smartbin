@@ -8,6 +8,8 @@ import subprocess
 import os
 import signal 
 from random import randint
+import paho.mqtt.client as mqtt
+import json
 
 #my imports
 import Rekognition
@@ -18,13 +20,19 @@ import MyCamera
 import SerialHandler
 import Servo
 import RingWasteLed
+import GreenGrass
+
 
 GPIO.setmode(GPIO.BCM)
+HOST = '34.244.160.143'
+FILL_LEVEL_TOPIC = "smartbin/fill_levels"
+
 
 CURRENT_STATUS = "INIT"
 OLD_STATUS = "NONE"
 
-
+greengrass = True
+aws_rekognition = False
 
 THRESHOLD_TOF = 300
 BIN_HEIGHT = 800.0
@@ -74,6 +82,21 @@ def signal_handler(signal, frame):
 	sys.exit(0)
 
 
+def on_message(client, userdata, message):
+	print("rec")
+	response = str(message.payload.decode("utf-8"))
+	try:
+		resp_parse = json.loads(response)
+	except ValueError as e:
+		print("malformed json")
+	
+	for key, val in resp_parse.items():
+		fill_levels[key] = val
+	
+	global CURRENT_STATUS
+	if(CURRENT_STATUS == "IDLE"):
+		CURRENT_STATUS = "SET_FILL_LEVEL"
+	
 ####### SETUP TOF #######
 def setupToF(all_tof=True):
 	GPIO.setwarnings(False)
@@ -213,9 +236,19 @@ if __name__ == "__main__":
 			for r in wasteRings:
 				r.checkStatus()
 			
+			#MQTT
+			client = mqtt.Client("levels")
+			client.connect(HOST)
+			client.on_message = on_message
+			client.subscribe(FILL_LEVEL_TOPIC)
+			
+			
+			client.loop_start()
+			
 			#tof1, tof2, tof_unsorted, tof_plastic = setupToF()
 			tof1, tof2 = setupToF(False)
 			reko = Rekognition.Rekognition(debug=True)
+			gg = GreenGrass.GreenGrass()
 			
 			camera = MyCamera.MyCamera()
 			
@@ -368,14 +401,18 @@ if __name__ == "__main__":
 			matrixLed.turnOff()
 			for r in wasteRings:
 				r.setWaste(0)
-			waste_type = reko.getLabels(camera.currentPath())
-			#camera.erasePath()			
+			
+			if(aws_rekognition):
+				waste_type = reko.getLabels(camera.currentPath())
+			if(greengrass):
+				waste_type = gg.getLabels(camera.currentPath())	
+					
 			print("oggetto riconosciuto, e': {}".format(waste_type))
 			
 			
 			
 			for r in wasteRings:
-				r.setWaste(0)
+				r.turnOffRing()
 				
 			if(waste_type is "UNSORTED"):
 				unsortedRing.setWaste(333)
@@ -428,30 +465,39 @@ if __name__ == "__main__":
 				if key == "unsorted":
 					fill_levels[key] = randint(0, 100)
 					#fill_levels[key] = read_bin_level(tof_unsorted)
-					unsortedRing.setWaste(fill_levels[key])
+					#unsortedRing.setWaste(fill_levels[key])
 				if key == "plastic":
 					#fill_levels[key] = read_bin_level(tof_plastic)
 					fill_levels[key] = randint(0, 100)
-					plasticRing.setWaste(fill_levels[key])
+					#plasticRing.setWaste(fill_levels[key])
 				if key == "paper":
 					fill_levels[key] = randint(0, 100)
-					paperRing.setWaste(fill_levels[key])
+					#paperRing.setWaste(fill_levels[key])
 				if key == "glass":
 					fill_levels[key] = randint(0, 100)
-					glassRing.setWaste(fill_levels[key])
-			
+					#glassRing.setWaste(fill_levels[key])
 			
 			for key, val in fill_levels.items():
 				print("{}: {}".format(key, val))
 			
 			matrixLed.greenArrow()
-			CURRENT_STATUS = "IDLE"
+			CURRENT_STATUS = "SET_FILL_LEVEL"
 		
-				
+		elif(CURRENT_STATUS == "SET_FILL_LEVEL"):
+			for key in fill_levels.keys():
+				if key == "unsorted":
+					unsortedRing.setWaste(fill_levels[key])
+				if key == "plastic":
+					plasticRing.setWaste(fill_levels[key])
+				if key == "paper":
+					paperRing.setWaste(fill_levels[key])
+				if key == "glass":
+					glassRing.setWaste(fill_levels[key])	
+			
+			CURRENT_STATUS = "IDLE"	
 			
 		##### IDLE #####
 		elif(CURRENT_STATUS == "IDLE"):
-			
 			if(deadToF1 and deadToF2):
 				#reset tof
 				doorServo.closeLid()
@@ -465,6 +511,8 @@ if __name__ == "__main__":
 				doorServo.openLid()
 				ringLed.staticGreen()
 				matrixLed.greenArrow()
+			else:
+				pass
 
 		
 				
