@@ -40,7 +40,7 @@ def timeout():
 	global status, waste
 	if(status == "WAIT_RESP"):
 		print("timeout")
-		waste = "UNSORTED"
+		waste = "TIMEOUT"
 		status = "SEND_RESP"
 	
 class GreenGrass():

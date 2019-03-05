@@ -10,6 +10,8 @@ import signal
 from random import randint
 import paho.mqtt.client as mqtt
 import json
+import thread
+from multiprocessing.pool import ThreadPool
 
 #my imports
 import Rekognition
@@ -32,7 +34,7 @@ CURRENT_STATUS = "INIT"
 OLD_STATUS = "NONE"
 
 greengrass = True
-aws_rekognition = False
+aws_rekognition = True
 
 THRESHOLD_TOF = 300
 BIN_HEIGHT = 800.0
@@ -257,6 +259,8 @@ if __name__ == "__main__":
 			palettaServo = Servo.PalettaServo()
 			diskServo =  Servo.DiskServo()
 			
+			pool = ThreadPool(processes=1)
+			
 			CURRENT_STATUS = "CHECK_INIT"
 		
 		elif(CURRENT_STATUS == "CHECK_INIT"):
@@ -398,20 +402,28 @@ if __name__ == "__main__":
 		 
 		##### REKOGNITION #####
 		elif(CURRENT_STATUS == "REKOGNITION"):
-			matrixLed.turnOff()
-			for r in wasteRings:
-				r.setWaste(0)
+			#matrixLed.turnOff()
+			#for r in wasteRings:
+			#	r.turnOffRing()
 			
-			if(aws_rekognition):
-				waste_type = reko.getLabels(camera.currentPath())
 			if(greengrass):
-				waste_type = gg.getLabels(camera.currentPath())	
-					
-			print("oggetto riconosciuto, e': {}".format(waste_type))
+				async_result = pool.apply_async(gg.getLabels, (camera.currentPath(),))
+						
+			if(aws_rekognition):
+				waste_type_aws = reko.getLabels(camera.currentPath())
+				print("REKO: oggetto riconosciuto, e': {}".format(waste_type_aws))
+	
+			if(greengrass):
+				waste_type_gg = async_result.get()	
+				print("GG: oggetto riconosciuto, e': {}".format(waste_type_gg))
 			
-			
-			
+			if(waste_type_gg == "TIMEOUT" or not greengrass):
+				waste_type = waste_type_aws
+			else:
+				waste_type = waste_type_gg
+				
 			for r in wasteRings:
+				print("ooo")
 				r.turnOffRing()
 				
 			if(waste_type is "UNSORTED"):
@@ -428,7 +440,7 @@ if __name__ == "__main__":
 		
 			
 
-			if(waste_type is "EMPTY"):
+			if(waste_type == "EMPTY"):
 				CURRENT_STATUS = "IDLE"
 				doorServo.openLid()
 			else:

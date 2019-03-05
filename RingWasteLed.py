@@ -15,7 +15,7 @@ class RingWasteLed():
 			print("WASTE ERROR: set to level {}".format(e))
 	
 	def turnOffRing(self):
-		msg = '#0!'
+		msg = '#'+self.waste_type+'0!'
 		try:
 			self.ser.write(str.encode(msg))
 		except serial.SerialException as e:

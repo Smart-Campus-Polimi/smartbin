@@ -14,6 +14,7 @@ class MatrixLed():
 
 	def greenArrow(self):
 		try:
+			self.ser.write(b'#M0!')
 			self.ser.write(b'#M1!')
 			print("MATRIX: green arrow")
 		except serial.SerialException as e:
@@ -21,6 +22,7 @@ class MatrixLed():
 
 	def redCross(self):
 		try:
+			self.ser.write(b'#M0!')
 			self.ser.write(b'#M2!')
 			print("MATRIX: red cross")
 		except serial.SerialException as e:
@@ -28,6 +30,7 @@ class MatrixLed():
 
 	def arrowAnimation(self):
 		try:
+			self.ser.write(b'#M0!')
 			self.ser.write(b'#M3!')
 			print("MATRIX: arrow animation")
 		except serial.SerialException as e:
