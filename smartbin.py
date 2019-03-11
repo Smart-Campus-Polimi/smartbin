@@ -23,11 +23,11 @@ import SerialHandler
 import Servo
 import RingWasteLed
 import GreenGrass
+import constants as c
 
 
 GPIO.setmode(GPIO.BCM)
-HOST = '34.244.160.143'
-FILL_LEVEL_TOPIC = "smartbin/fill_levels"
+
 
 
 CURRENT_STATUS = "INIT"
@@ -36,25 +36,9 @@ OLD_STATUS = "NONE"
 greengrass = True
 aws_rekognition = True
 
-THRESHOLD_TOF = 200
-BIN_HEIGHT = 800.0
-TIMER_PHOTO = 5 #seconds
-TIMER_DOOR = 10 #seconds
-
-#### PATHS ####
-#WEBCAM = '~/smartbin/scripts/webcam.sh'
-PICTURE_DIRECTORY = '~/pictures/'
-
-#### GPIO PINS ####
-DOOR_SENSOR = 18
-SENSOR1 = 20 #tof1
-SENSOR2 = 16 #tof2
-SENSOR_UNSORTED = 21 #tof unsorted
-SENSOR_PLASTIC = 26 #tof plastic
-
-
 
 #### VARS ####
+#most of them are not used 
 timer_door = None
 isOpen = False
 oldIsOpen = False
@@ -104,17 +88,17 @@ def setupToF(all_tof=True):
 	GPIO.setwarnings(False)
 
 	# Setup GPIO for shutdown pins on each VL53L0X
-	GPIO.setup(SENSOR1, GPIO.OUT)
-	GPIO.setup(SENSOR2, GPIO.OUT)
-	#GPIO.setup(SENSOR_UNSORTED, GPIO.OUT)
-	#GPIO.setup(SENSOR_PLASTIC, GPIO.OUT)
+	GPIO.setup(c.SENSOR1, GPIO.OUT)
+	GPIO.setup(c.SENSOR2, GPIO.OUT)
+	#GPIO.setup(c.SENSOR_UNSORTED, GPIO.OUT)
+	#GPIO.setup(c.SENSOR_PLASTIC, GPIO.OUT)
 
 
 	# Set all shutdown pins low to turn off each VL53L0X
-	GPIO.output(SENSOR1, GPIO.LOW)
-	GPIO.output(SENSOR2, GPIO.LOW)
-	#GPIO.output(SENSOR_UNSORTED, GPIO.LOW)
-	#GPIO.output(SENSOR_PLASTIC, GPIO.LOW)
+	GPIO.output(c.SENSOR1, GPIO.LOW)
+	GPIO.output(c.SENSOR2, GPIO.LOW)
+	#GPIO.output(c.SENSOR_UNSORTED, GPIO.LOW)
+	#GPIO.output(c.SENSOR_PLASTIC, GPIO.LOW)
 
 	time.sleep(0.50)
 
@@ -124,20 +108,20 @@ def setupToF(all_tof=True):
 	#tof_u = VL53L0X.VL53L0X(address=0x29)
 	
 	
-	GPIO.output(SENSOR1, GPIO.HIGH)
+	GPIO.output(c.SENSOR1, GPIO.HIGH)
 	time.sleep(0.50)
 	tof.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
 
-	GPIO.output(SENSOR2, GPIO.HIGH)
+	GPIO.output(c.SENSOR2, GPIO.HIGH)
 	time.sleep(0.50)
 	tof1.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
 	
 	if(all_tof):
-		GPIO.output(SENSOR_UNSORTED, GPIO.HIGH)
+		GPIO.output(c.SENSOR_UNSORTED, GPIO.HIGH)
 		time.sleep(0.50)
 		tof_p.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
 		
-		GPIO.output(SENSOR_PLASTIC, GPIO.HIGH)
+		GPIO.output(c.SENSOR_PLASTIC, GPIO.HIGH)
 		time.sleep(0.50)
 		tof_u.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
 
@@ -153,7 +137,7 @@ def door_callback(channel):
 	oldIsOpen = isOpen
 	global timer_door
 
-	isOpen = GPIO.input(DOOR_SENSOR)
+	isOpen = GPIO.input(c.DOOR_SENSOR)
 
 	if(isOpen and not oldIsOpen):
 		if(CURRENT_STATUS == "PHOTO" or CURRENT_STATUS == "MOTORS" or CURRENT_STATUS == "PHOTO_DONE" or CURRENT_STATUS == "REKOGNITION"):
@@ -194,14 +178,14 @@ def door_forgotten_open():
 def read_bin_level(tof):
 	fill_lev = tof.get_distance()
 	if(fill_lev > 0):
-		level = int((fill_lev/BIN_HEIGHT) * 100.0)
+		level = int((fill_lev/c.BIN_HEIGHT) * 100.0)
 		if(level > 100):
 			level = 100
 		return level	
 
 ##### DOOR SETUP #####
-GPIO.setup(DOOR_SENSOR, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-GPIO.add_event_detect(DOOR_SENSOR, GPIO.BOTH, callback=door_callback)  
+GPIO.setup(c.DOOR_SENSOR, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+GPIO.add_event_detect(c.DOOR_SENSOR, GPIO.BOTH, callback=door_callback)  
 
 
 
@@ -243,7 +227,7 @@ if __name__ == "__main__":
 			client = mqtt.Client("levels")
 			client.connect(HOST)
 			client.on_message = on_message
-			client.subscribe(FILL_LEVEL_TOPIC)
+			client.subscribe(c.FILL_LEVEL_TOPIC)
 			
 			
 			client.loop_start()
@@ -277,18 +261,19 @@ if __name__ == "__main__":
 			if(not tof2.checkStatus("2d")):
 				errors.append("TOF2")
 
+			#if no errors set current status = boot
 			if(len(errors) < 1):		
 				CURRENT_STATUS = "BOOT"
 			else:
 				CURRENT_STATUS = "INIT_ERROR" 
 				
-				#if no errors set current status = boot
+				
 			
 		
 		elif(CURRENT_STATUS == "BOOT"):
 			print("\n### Current status: {}".format(CURRENT_STATUS))
 
-			isOpen = GPIO.input(DOOR_SENSOR)
+			isOpen = GPIO.input(c.DOOR_SENSOR)
 			startUp = True
 			
 			if(isOpen):
@@ -363,7 +348,7 @@ if __name__ == "__main__":
 				CURRENT_STATUS = "WASTE_IN"
 			
 			oldWasteIn = wasteIn
-			if(distance1 < THRESHOLD_TOF or distance2 < THRESHOLD_TOF):
+			if(distance1 < c.THRESHOLD_TOF or distance2 < c.THRESHOLD_TOF):
 				CURRENT_STATUS = "WASTE_IN"
 			
 				
@@ -372,7 +357,7 @@ if __name__ == "__main__":
 			print("oggetto inserito")
 			camera.setCameraStatus(False)
 			camera.erasePath()
-			timer_pic = threading.Timer(TIMER_PHOTO, photo_ready, [camera])
+			timer_pic = threading.Timer(c.TIMER_PHOTO, photo_ready, [camera])
 			timer_pic.start()
 			CURRENT_STATUS = "WAIT_CLOSE"
 			
@@ -397,7 +382,6 @@ if __name__ == "__main__":
 		
 		##### PHOTO DONE #####	
 		elif(CURRENT_STATUS == "PHOTO_DONE"):
-			#camera.setCameraStatus(False)
 			CURRENT_STATUS = "REKOGNITION"
 		
 		 
@@ -482,10 +466,10 @@ if __name__ == "__main__":
 					#unsortedRing.setWaste(fill_levels[key])
 				if key == "plastic":
 					#fill_levels[key] = read_bin_level(tof_plastic)
-					fill_levels[key] = 60 + i*5
+					fill_levels[key] = 60 
 					#plasticRing.setWaste(fill_levels[key])
 				if key == "paper":
-					fill_levels[key] = 40 + j*5
+					fill_levels[key] = 40 
 					#paperRing.setWaste(fill_levels[key])
 				if key == "glass":
 					fill_levels[key] = 20
@@ -507,15 +491,6 @@ if __name__ == "__main__":
 					paperRing.setWaste(fill_levels[key])
 				if key == "glass":
 					glassRing.setWaste(fill_levels[key])	
-			
-
-
-		
-			if(i == 1):
-                                j = j +1
-			
-			if(i == 0):
-				i = i+1	
 			
 			
 			CURRENT_STATUS = "IDLE"	
@@ -543,7 +518,7 @@ if __name__ == "__main__":
 
 	print("EOF!")
 	tof2.stop_ranging()
-	GPIO.output(SENSOR2, GPIO.LOW)
+	GPIO.output(c.SENSOR2, GPIO.LOW)
 	tof1.stop_ranging()
-	GPIO.output(SENSOR1, GPIO.LOW)
+	GPIO.output(c.SENSOR1, GPIO.LOW)
 	ringLed.staticRed()

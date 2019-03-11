@@ -1,0 +1,23 @@
+
+#MQTT
+HOST = '34.244.160.143'
+FILL_LEVEL_TOPIC = "smartbin/fill_levels"
+
+#MISCELLANEOUS
+THRESHOLD_TOF = 200
+BIN_HEIGHT = 800.0
+TIMER_PHOTO = 5 #seconds
+TIMER_DOOR = 10 #seconds
+
+#PATHS
+#PICTURE_DIRECTORY = '~/pictures/'
+
+
+#### GPIO PINS ####
+DOOR_SENSOR = 18 #magnetic
+
+#TOF
+SENSOR1 = 20 #tof1
+SENSOR2 = 16 #tof2
+SENSOR_UNSORTED = 21 #tof unsorted
+SENSOR_PLASTIC = 26 #tof plastic
