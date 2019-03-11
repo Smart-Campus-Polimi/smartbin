@@ -36,7 +36,7 @@ OLD_STATUS = "NONE"
 greengrass = True
 aws_rekognition = True
 
-THRESHOLD_TOF = 300
+THRESHOLD_TOF = 200
 BIN_HEIGHT = 800.0
 TIMER_PHOTO = 5 #seconds
 TIMER_DOOR = 10 #seconds
@@ -209,7 +209,8 @@ GPIO.add_event_detect(DOOR_SENSOR, GPIO.BOTH, callback=door_callback)
 if __name__ == "__main__":
 	signal.signal(signal.SIGINT, signal_handler)
 	print("STARTING SMARTBIN V2.0...")
-
+	i = 0
+	j = 0
 	CURRENT_STATUS = "INIT"
 	setup = True
 	while(setup):
@@ -406,6 +407,8 @@ if __name__ == "__main__":
 			#for r in wasteRings:
 			#	r.turnOffRing()
 			
+
+			waste_type_gg = "TIMEOUT"
 			if(greengrass):
 				async_result = pool.apply_async(gg.getLabels, (camera.currentPath(),))
 						
@@ -423,28 +426,27 @@ if __name__ == "__main__":
 				waste_type = waste_type_gg
 				
 			for r in wasteRings:
-				print("ooo")
 				r.turnOffRing()
 				
-			if(waste_type is "UNSORTED"):
-				unsortedRing.setWaste(333)
-
-			elif(waste_type is "PLASTIC"):
+			if(waste_type == "UNSORTED"):
 				plasticRing.setWaste(333)
 
-			elif(waste_type is "PAPER"):
-				paperRing.setWaste(333)
+			elif(waste_type == "PLASTIC"):
+				unsortedRing.setWaste(333)
 
-			elif(waste_type is "GLASS"):
+			elif(waste_type == "PAPER"):
 				glassRing.setWaste(333)
+
+			elif(waste_type == "GLASS"):
+				paperRing.setWaste(333)
 		
 			
 
-			if(waste_type == "EMPTY"):
-				CURRENT_STATUS = "IDLE"
-				doorServo.openLid()
-			else:
-				CURRENT_STATUS = "MOTORS"
+			#if(waste_type == "EMPTY"):
+			#	CURRENT_STATUS = "SET_FILL_LEVEL"
+			#	doorServo.openLid()
+			#else:
+			CURRENT_STATUS = "MOTORS"
 		
 		
 		##### MOTORS #####
@@ -475,18 +477,18 @@ if __name__ == "__main__":
 		elif(CURRENT_STATUS == "READ_FILL_LEVEL"):
 			for key in fill_levels.keys():
 				if key == "unsorted":
-					fill_levels[key] = randint(0, 100)
+					fill_levels[key] = 30
 					#fill_levels[key] = read_bin_level(tof_unsorted)
 					#unsortedRing.setWaste(fill_levels[key])
 				if key == "plastic":
 					#fill_levels[key] = read_bin_level(tof_plastic)
-					fill_levels[key] = randint(0, 100)
+					fill_levels[key] = 60 + i*5
 					#plasticRing.setWaste(fill_levels[key])
 				if key == "paper":
-					fill_levels[key] = randint(0, 100)
+					fill_levels[key] = 40 + j*5
 					#paperRing.setWaste(fill_levels[key])
 				if key == "glass":
-					fill_levels[key] = randint(0, 100)
+					fill_levels[key] = 20
 					#glassRing.setWaste(fill_levels[key])
 			
 			for key, val in fill_levels.items():
@@ -506,6 +508,16 @@ if __name__ == "__main__":
 				if key == "glass":
 					glassRing.setWaste(fill_levels[key])	
 			
+
+
+		
+			if(i == 1):
+                                j = j +1
+			
+			if(i == 0):
+				i = i+1	
+			
+			
 			CURRENT_STATUS = "IDLE"	
 			
 		##### IDLE #####
@@ -517,7 +529,7 @@ if __name__ == "__main__":
 				matrixLed.redCross()
 				tof1.stop_ranging()
 				tof2.stop_ranging()
-				tof1, tof2, tof_unsorted, tof_plastic = setupToF(all_tof = True)
+				tof1, tof2  = setupToF(all_tof = False)
 				deadToF1 = False
 				deadToF2 = False
 				doorServo.openLid()

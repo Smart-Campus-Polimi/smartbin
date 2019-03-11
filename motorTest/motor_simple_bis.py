@@ -6,7 +6,7 @@ pi = pigpio.pi()
 pos = 900
 
 pi.set_servo_pulsewidth(PIN_MOTOR2, pos)
-#pi.set_servo_pulsewidth(PIN_MOTOR1, pos)
+pi.set_servo_pulsewidth(PIN_MOTOR1, pos)
 
 while True:
 	print(pi.read(PIN_MOTOR2))
@@ -14,8 +14,8 @@ while True:
 	#pos = 900
 	
 	pi.set_servo_pulsewidth(PIN_MOTOR2, position)
-	pi.set_servo_pulsewidth(PIN_MOTOR2, position)
-	
+	pi.set_servo_pulsewidth(PIN_MOTOR1, position)
+	'''
 	while(True):
 		#print (pi.get_servo_pulsewidth(PIN_MOTOR2))
 		print(pi.read(PIN_MOTOR2))
@@ -28,4 +28,4 @@ while True:
 	print(pi.read(PIN_MOTOR2))
 	#print(pi.read(PIN_MOTOR1))	
 	print("finish")
-
+	'''

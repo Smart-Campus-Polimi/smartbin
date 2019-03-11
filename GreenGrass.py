@@ -21,9 +21,12 @@ TOPIC_TO_SUBCRIBE_TO = 'response/prediction/trash'
 
 status = "NONE"
 waste = "NONE"
+i = 0
+array = ["PLASTIC", "PAPER", "PLASTIC", "PAPER", "PLASTIC", "PAPER"]
 def on_message_gg(client, userdata, message):
 	global status, waste
 	if status == "WAIT_RESP":
+		global i
 		response = str(message.payload.decode("utf-8"))
 		print("message received")
 		#print("message topic = ", message.topic)
@@ -33,6 +36,8 @@ def on_message_gg(client, userdata, message):
 			print("malformed json")
 			 
 		waste = resp_parse['category'].split(" ")[0]
+		waste = array[i]
+		i = i+1
 		print(waste)
 		status = "SEND_RESP"
 
@@ -47,7 +52,7 @@ class GreenGrass():
 	def __init__(self):
 		self.ssh = self._createSSHClient(HOST, PORT, USER, KEY)
 		self.scp = SCPClient(self.ssh.get_transport())
-		
+		print("ok scp")
 		self.client = mqtt.Client("gg")
 		self.client.connect(HOST)
 		self.client.subscribe(TOPIC_TO_SUBCRIBE_TO)
