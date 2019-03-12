@@ -3,27 +3,30 @@ import time
 import pigpio
 import motors_constants as m
 
+GPIO.setmode(GPIO.BCM)
+
 class PalettaServo():
 	def __init__(self):
 		self.servo = pigpio.pi()
-		
+		GPIO.setup(m.PIN_MAGNET_PALETTA, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 		self.servo.set_servo_pulsewidth(m.PALETTA_MOTOR, m.PALETTA_INIT)
 		self.zero_paletta = m.PALETTA_INIT
 		print("SERVO: initialization Done")
 
 	def calibration(self):
-		for pos in range(m.MIN_MOTOR, m.MAX_MOTOR):
-		print(pos)
-		if(GPIO.input(m.PIN_MAGNET_PALETTA)):
-			pi.set_servo_pulsewidth(m.PALETTA_MOTOR, pos)
-			time.sleep(.02)
-		else:
-			self.zero_paletta = pos + OFFSET_PALETTA
-			break
+		for pos in range(m.PALETTA_INIT, m.MAX_MOTOR):
+			if(GPIO.input(m.PIN_MAGNET_PALETTA)):
+				self.servo.set_servo_pulsewidth(m.PALETTA_MOTOR, pos)
+				time.sleep(.02)
+			else:
+				self.zero_paletta = pos + m.OFFSET_PALETTA
+				break
+		
+		self.servo.set_servo_pulsewidth(m.PALETTA_MOTOR, self.zero_paletta)
+		print("PALETTA: Zero pos paletta is : {}".format(self.zero_paletta))
 
 		return True
 
-print("Zero pos paletta is : {}".format(zero_paletta))
 
 	def movePaletta(self, waste):
 		self.servo.set_servo_pulsewidth(m.PALETTA_MOTOR, self._parsePaletta(waste))
@@ -47,21 +50,22 @@ print("Zero pos paletta is : {}".format(zero_paletta))
 class DiskServo():
 	def __init__(self):
 		self.servo = pigpio.pi()
-		
+		GPIO.setup(m.PIN_MAGNET_DISK, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 		self.servo.set_servo_pulsewidth(m.DISK_MOTOR, m.DISK_INIT)
 		self.zero_disk = m.DISK_INIT
 		print("SERVO: initialization Done")
 		
 	def calibration(self):
-		for pos in range(m.MIN_MOTOR, m.MAX_MOTOR):
-		print(pos)
-		if(GPIO.input(m.PIN_MAGNET_DISK)):
-			pi.set_servo_pulsewidth(m.DISK_MOTOR, pos)
-			time.sleep(.02)
-		else:
-			self.zero_disk = pos + OFFSET_DISK
-			break
-
+		for pos in range(m.DISK_INIT, m.MAX_MOTOR):
+			if(GPIO.input(m.PIN_MAGNET_DISK)):
+				self.servo.set_servo_pulsewidth(m.DISK_MOTOR, pos)
+				time.sleep(.02)
+			else:
+				self.zero_disk = pos + m.OFFSET_DISK
+				break
+		
+		self.servo.set_servo_pulsewidth(m.DISK_MOTOR, self.zero_disk)
+		print("DISK: Zero pos disk is : {}".format(self.zero_disk))
 		return True
 
 	def moveDisk(self, waste):

@@ -29,7 +29,6 @@ import constants as c
 GPIO.setmode(GPIO.BCM)
 
 
-
 CURRENT_STATUS = "INIT"
 OLD_STATUS = "NONE"
 
@@ -50,10 +49,10 @@ deadToF1 = False
 deadToF2 = False
 
 fill_levels = {
-				"unsorted": 0,
-				"plastic": 0,
-				"paper": 0,
-				"glass": 0
+				"unsorted": 13,
+				"plastic": 3,
+				"paper": 10,
+				"glass": 8
 			   }
 
 ####### SIGNAL HANDLER ######
@@ -145,7 +144,7 @@ def door_callback(channel):
 		else:
 			CURRENT_STATUS = "DOOR_OPEN"
 			doorLed.turnOn()
-			timer_door = threading.Timer(TIMER_DOOR, door_forgotten_open)
+			timer_door = threading.Timer(c.TIMER_DOOR, door_forgotten_open)
 			timer_door.start()
 		
 		
@@ -193,8 +192,7 @@ GPIO.add_event_detect(c.DOOR_SENSOR, GPIO.BOTH, callback=door_callback)
 if __name__ == "__main__":
 	signal.signal(signal.SIGINT, signal_handler)
 	print("STARTING SMARTBIN V2.0...")
-	i = 0
-	j = 0
+	
 	CURRENT_STATUS = "INIT"
 	setup = True
 	while(setup):
@@ -219,13 +217,20 @@ if __name__ == "__main__":
 
 			glassRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'G')
 			
+			
+			paletta = Servo.PalettaServo()
+			disk = Servo.DiskServo()
+			
+			calib_paletta = paletta.calibration()
+			calib_disk = disk.calibration()
+			
 			wasteRings = [unsortedRing, plasticRing, paperRing, glassRing]
 			for r in wasteRings:
 				r.checkStatus()
 			
 			#MQTT
 			client = mqtt.Client("levels")
-			client.connect(HOST)
+			client.connect(c.HOST)
 			client.on_message = on_message
 			client.subscribe(c.FILL_LEVEL_TOPIC)
 			
@@ -260,7 +265,12 @@ if __name__ == "__main__":
 				errors.append("TOF1")
 			if(not tof2.checkStatus("2d")):
 				errors.append("TOF2")
-
+	
+			while(not calib_disk):
+				print("wait disk calibration")
+			while(not calib_paletta):
+				print("wait paletta calibration")
+				
 			#if no errors set current status = boot
 			if(len(errors) < 1):		
 				CURRENT_STATUS = "BOOT"
@@ -414,15 +424,23 @@ if __name__ == "__main__":
 				
 			if(waste_type == "UNSORTED"):
 				plasticRing.setWaste(333)
+				fill_levels["unsorted"] += 2
+				#n_unsorted += 2
 
 			elif(waste_type == "PLASTIC"):
 				unsortedRing.setWaste(333)
+				ill_levels["plastic"] += 2
+				#n_plastic += 1
 
 			elif(waste_type == "PAPER"):
 				glassRing.setWaste(333)
+				ill_levels["paper"] += 2
+				#n_paper += 2
 
 			elif(waste_type == "GLASS"):
 				paperRing.setWaste(333)
+				ill_levels["glass"] += 2
+				#n_glass += 2
 		
 			
 
@@ -461,19 +479,19 @@ if __name__ == "__main__":
 		elif(CURRENT_STATUS == "READ_FILL_LEVEL"):
 			for key in fill_levels.keys():
 				if key == "unsorted":
-					fill_levels[key] = 30
+					pass
+					#fill_levels[key] = 30
 					#fill_levels[key] = read_bin_level(tof_unsorted)
-					#unsortedRing.setWaste(fill_levels[key])
 				if key == "plastic":
+					pass
 					#fill_levels[key] = read_bin_level(tof_plastic)
-					fill_levels[key] = 60 
-					#plasticRing.setWaste(fill_levels[key])
+					#fill_levels[key] = 60 
 				if key == "paper":
-					fill_levels[key] = 40 
-					#paperRing.setWaste(fill_levels[key])
+					pass
+					#fill_levels[key] = 40 
 				if key == "glass":
-					fill_levels[key] = 20
-					#glassRing.setWaste(fill_levels[key])
+					pass
+					#fill_levels[key] = 20
 			
 			for key, val in fill_levels.items():
 				print("{}: {}".format(key, val))
