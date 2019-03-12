@@ -22,6 +22,10 @@ class PalettaServo():
 				self.zero_paletta = pos + m.OFFSET_PALETTA
 				break
 		
+		if(self.zero_paletta == m.PALETTA_INIT):
+			print("PALETTA: calibration failed")
+			#self.zero_paletta = ???
+
 		self.servo.set_servo_pulsewidth(m.PALETTA_MOTOR, self.zero_paletta)
 		print("PALETTA: Zero pos paletta is : {}".format(self.zero_paletta))
 
@@ -64,6 +68,10 @@ class DiskServo():
 				self.zero_disk = pos + m.OFFSET_DISK
 				break
 		
+		if(self.zero_disk == m.DISK_INIT):
+			print("DISK: calibration failed")
+			#self.zero_paletta = ???
+			
 		self.servo.set_servo_pulsewidth(m.DISK_MOTOR, self.zero_disk)
 		print("DISK: Zero pos disk is : {}".format(self.zero_disk))
 		return True

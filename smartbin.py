@@ -47,6 +47,7 @@ wasteIn = False
 oldWasteIn = False
 deadToF1 = False
 deadToF2 = False
+total_iteration = 0
 
 fill_levels = {
 				"unsorted": 13,
@@ -344,12 +345,12 @@ if __name__ == "__main__":
 			print(distance1, distance2)
 			
 						
-			if(distance1 < 5):
+			if(distance1 < 0):
 				distance1 = 666
 				deadToF1 = True
 				print("tof1 morto, restart")
 				
-			if(distance2 < 5):
+			if(distance2 < 0):
 				distance2 = 666
 				deadToF2 = True
 				print("tof2 morto, restart")
@@ -397,12 +398,10 @@ if __name__ == "__main__":
 		 
 		##### REKOGNITION #####
 		elif(CURRENT_STATUS == "REKOGNITION"):
-			#matrixLed.turnOff()
-			#for r in wasteRings:
-			#	r.turnOffRing()
 			
-
 			waste_type_gg = "TIMEOUT"
+			waste_type_aws = None
+
 			if(greengrass):
 				async_result = pool.apply_async(gg.getLabels, (camera.currentPath(),))
 						
@@ -413,11 +412,18 @@ if __name__ == "__main__":
 			if(greengrass):
 				waste_type_gg = async_result.get()	
 				print("GG: oggetto riconosciuto, e': {}".format(waste_type_gg))
-			
+
+
+
 			if(waste_type_gg == "TIMEOUT" or not greengrass):
-				waste_type = waste_type_aws
+				if(waste_type_aws is not None):
+					waste_type = waste_type_aws
+				else:
+					waste_type = "UNSORTED"
 			else:
 				waste_type = waste_type_gg
+
+
 				
 			for r in wasteRings:
 				r.turnOffRing()
@@ -425,35 +431,31 @@ if __name__ == "__main__":
 			if(waste_type == "UNSORTED"):
 				plasticRing.setWaste(333)
 				fill_levels["unsorted"] += 2
-				#n_unsorted += 2
 
 			elif(waste_type == "PLASTIC"):
 				unsortedRing.setWaste(333)
-				ill_levels["plastic"] += 2
-				#n_plastic += 1
+				fill_levels["plastic"] += 2
 
 			elif(waste_type == "PAPER"):
 				glassRing.setWaste(333)
-				ill_levels["paper"] += 2
-				#n_paper += 2
+				fill_levels["paper"] += 2
 
 			elif(waste_type == "GLASS"):
 				paperRing.setWaste(333)
-				ill_levels["glass"] += 2
-				#n_glass += 2
+				fill_levels["glass"] += 2
 		
 			
-
-			#if(waste_type == "EMPTY"):
-			#	CURRENT_STATUS = "SET_FILL_LEVEL"
-			#	doorServo.openLid()
-			#else:
-			CURRENT_STATUS = "MOTORS"
+			if(waste_type == "EMPTY"):
+				CURRENT_STATUS = "SET_FILL_LEVEL"
+				doorServo.openLid()
+			else:
+				CURRENT_STATUS = "MOTORS"
 		
 		
 		##### MOTORS #####
 		elif(CURRENT_STATUS == "MOTORS"):
 			print("aziono i motori")
+			total_iteration += 1
 			
 			#go
 			palettaServo.movePaletta(waste_type)
@@ -469,9 +471,11 @@ if __name__ == "__main__":
 			palettaServo.movePaletta("HOME")
 			time.sleep(1.5)
 			print("azione finita")
+
 			ringLed.staticGreen()
-	
+			matrixLed.greenArrow()
 			doorServo.openLid()
+			
 			CURRENT_STATUS = "READ_FILL_LEVEL"
 			
 		
@@ -496,7 +500,7 @@ if __name__ == "__main__":
 			for key, val in fill_levels.items():
 				print("{}: {}".format(key, val))
 			
-			matrixLed.greenArrow()
+			
 			CURRENT_STATUS = "SET_FILL_LEVEL"
 		
 		elif(CURRENT_STATUS == "SET_FILL_LEVEL"):
@@ -510,7 +514,7 @@ if __name__ == "__main__":
 				if key == "glass":
 					glassRing.setWaste(fill_levels[key])	
 			
-			
+			print("this is the {} iteration".format(total_iteration))
 			CURRENT_STATUS = "IDLE"	
 			
 		##### IDLE #####
