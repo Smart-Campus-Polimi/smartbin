@@ -1,17 +1,17 @@
 #include <Adafruit_NeoPixel.h>
 
-#define MAX_BRIGHTNESS      100
+#define MAX_BRIGHTNESS      90
 #define SPEED_FACTOR          0.08
-#define WASTE_RING_SPEED     60
+#define WASTE_RING_SPEED     20
 /****** NEOPIXEL CAMERA ******/
 #define PIN_CAMERA            6
-#define CAMERA_PIXELS        24
+#define CAMERA_PIXELS        48
 /****** NEOPIXEL RING ******/
 #define PIN_RING              7
 #define RING_PIXELS         162
 
 /****** WASTE RING ******/
-#define PIN_UNSORTED          9
+#define PIN_UNSORTED          2
 #define PIN_PLASTIC           5
 #define PIN_PAPER             4
 #define PIN_GLASS             3
@@ -20,20 +20,20 @@
 #define OFFSET_WASTE          4
 
 /****** MATRIX ******/
-#define PIN_MATRIX            8
+#define PIN_MATRIX            1
 #define MATRIX_PIXELS        64
 /***** ARROW ANIMATION *****/
 #define LEG_ARROW             8
-#define BRANCH_ARROW          6
+#define BRANCH_ARROW          5
 #define MAX_ARROW            18
 #define MAX_CROSS            13
 
-const int arrow_indices[MAX_ARROW] = {0, 9, 18, 23, 27, 31, 36, 39, 45, 47, 54, 55, 58, 59, 60, 61, 62, 63};
+const int arrow_indices[MAX_ARROW] = {0, 9, 18, 27, 36, 45, 54, 63, 1, 2, 3, 4, 5, 8, 16, 24, 32, 40};
 const int cross_indices[MAX_CROSS] = {12, 20, 28, 33, 34, 35, 36, 37, 38, 39, 44, 52, 60};
 
 const int arrowLeg[LEG_ARROW] = {0, 9, 18, 27, 36, 45, 54, 63};
-const int arrowBranch1[BRANCH_ARROW] = {62, 61, 60, 59, 58, 57};
-const int arrowBranch2[BRANCH_ARROW] = {55, 47, 39, 31, 23, 15};
+const int arrowBranch1[BRANCH_ARROW] = {8, 16, 24, 32, 40};
+const int arrowBranch2[BRANCH_ARROW] = {1, 2, 3, 4,5};
 
 
 
@@ -88,15 +88,15 @@ class NeoPatterns : public Adafruit_NeoPixel
             breatheUpdate();
             break;
           case ARROW_ANIMATION:
-            turnOff();
+            //turnOff();
             arrowAnimationUpdate();
             break;
           case ARROW:
-            turnOff();
+            //turnOff();
             arrowUpdate();
             break;
           case CROSS:
-            turnOff();
+            //turnOff();
             crossUpdate();
             break;
           case WASTE:
@@ -218,7 +218,7 @@ class NeoPatterns : public Adafruit_NeoPixel
       setBrightness(MAX_BRIGHTNESS);
 
 
-      if (millis() - Prev > Interval) {
+      
         Serial.println("go");
         Serial.println(First_half);
         Serial.println(Index);
@@ -271,7 +271,7 @@ class NeoPatterns : public Adafruit_NeoPixel
           }
         }
 
-      }
+      
     }
 
     /****** ARROW ******/
@@ -367,7 +367,7 @@ class NeoPatterns : public Adafruit_NeoPixel
 
     void breatheUpdate()
     {
-      Intensity = MAX_BRIGHTNESS / 2 * (1 - cos(SPEED_FACTOR * Index));
+      Intensity = MAX_BRIGHTNESS  * (1 - cos(SPEED_FACTOR * Index));
       BrigthSet(Color1, Intensity);
       IncrementBreathe();
 
@@ -469,7 +469,7 @@ void setup()
   BigRing.Color1 = BigRing.Color(0, 0, 0);
   Stick.Color1 = Stick.Color(0, 0, 0);
   Matrix.ActivePattern = STATIC;
-    Matrix.Color1 = Matrix.Color(0,0,0);
+  Matrix.Color1 = Matrix.Color(0,0,0);
   UnsortedRing.Color1 = UnsortedRing.Color(0, 0, 0, 0);
   PlasticRing.Color1 = PlasticRing.Color(0, 0, 0, 0);
   PaperRing.Color1 = PaperRing.Color(0, 0, 0, 0);
@@ -649,7 +649,7 @@ void switchData(char p[]) {
     case 'M':
       Serial.print("Matrix to ");
       Serial.println(n);
-      //switchMatrix(n);
+      switchMatrix(n);
       break;
 
   }

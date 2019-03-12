@@ -20,5 +20,6 @@ class RingWasteLed():
 			self.ser.write(str.encode(msg))
 		except serial.SerialException as e:
 			print("WASTE ERROR: set to level {}".format(e))
+	
 	def checkStatus(self):
 		pass

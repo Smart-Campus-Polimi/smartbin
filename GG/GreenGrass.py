@@ -28,7 +28,7 @@ TOPIC_FAKE = 'response/prediction/fake'
 status = "NONE"
 waste = "NONE"
 next_one = None
-t_cheat = None
+timer_cheat = None
 
 def parse_msg(resp):
 	try:
@@ -48,7 +48,7 @@ def parse_msg(resp):
 	return waste
 
 def on_message_gg(client, userdata, message):
-	global status, waste, next_one, t_cheat
+	global status, waste, next_one, timer_cheat
 	print("GREENGRASS: message received")
 	if status == "WAIT_RESP":
 		if(message.topic == TOPIC_TO_SUBCRIBE_TO):
@@ -57,7 +57,7 @@ def on_message_gg(client, userdata, message):
 			else:
 				waste = next_one
 				next_one = None
-				t_cheat.cancel()
+				timer_cheat.cancel()
 			
 		if(message.topic == TOPIC_FAKE):
 			waste = parse_msg(str(message.payload.decode("utf-8")))
@@ -68,9 +68,8 @@ def on_message_gg(client, userdata, message):
 		if(message.topic == TOPIC_FAKE):
 			next_one = parse_msg(str(message.payload.decode("utf-8")))
 			print("GREENGRASS: next waste is {}".format(next_one))
-			global t_cheat
-			t_cheat = threading.Timer(TIMEOUT_CHEAT, timeout_cheat)
-			t_cheat.start() 
+			timer_cheat = threading.Timer(TIMEOUT_CHEAT, timeout_cheat)
+			timer_cheat.start() 
 
 def on_connect(client, userdata, flags, rc):
     print("GREENGRASS: Connected with result code "+str(rc))
@@ -78,11 +77,12 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe(TOPIC_FAKE)
 
 def timeout_gg_resp():
-	global status, waste, next_one
+	global status, waste, next_one, timer_cheat
 	if(status == "WAIT_RESP"):
 		if(next_one is not None):
 			waste = next_one
 			next_one = None
+			timer_cheat.cancel()
 		else:
 			waste = "TIMEOUT"
 		

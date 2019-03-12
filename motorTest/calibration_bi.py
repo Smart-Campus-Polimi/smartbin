@@ -80,20 +80,29 @@ while True:
 	
 	if(position == "1"):
 		print("Butto in unsorted")
-		pi.set_servo_pulsewidth(PIN_MOTOR, zero_paletta + UNSORTED)
+		pi.set_servo_pulsewidth(PIN_MOTOR_PALETTA, zero_paletta + UNSORTED)
+		pi.set_servo_pulsewidth(PIN_MOTOR_DISK, zero_disk + UNSORTED)
 
 	elif(position == "2"):
 		print("Butto in plastic")
-		pi.set_servo_pulsewidth(PIN_MOTOR, zero_paletta + PLASTIC)
+		pi.set_servo_pulsewidth(PIN_MOTOR_PALETTA, zero_paletta + PLASTIC)
+		pi.set_servo_pulsewidth(PIN_MOTOR_DISK, zero_disk + PLASTIC)
+
 
 	elif(position == "3"):
 		print("Butto in paper")
-                pi.set_servo_pulsewidth(PIN_MOTOR, zero_paletta + PAPER)
+		pi.set_servo_pulsewidth(PIN_MOTOR_PALETTA, zero_paletta + PAPER)
+		pi.set_servo_pulsewidth(PIN_MOTOR_DISK, zero_disk + PAPER)
+
 	
 	elif(position == "4"):
 		print("Butto in glass")
-		pi.set_servo_pulsewidth(PIN_MOTOR, zero_paletta + GLASS)
+		pi.set_servo_pulsewidth(PIN_MOTOR_PALETTA, zero_paletta + GLASS)
+		pi.set_servo_pulsewidth(PIN_MOTOR_DISK, zero_disk + GLASS)
+
 
 	else:
 		print("torno a casa")
-		pi.set_servo_pulsewidth(PIN_MOTOR, zero_paletta)
+		pi.set_servo_pulsewidth(PIN_MOTOR_PALETTA, zero_paletta)
+		pi.set_servo_pulsewidth(PIN_MOTOR_DISK, zero_disk)
+
