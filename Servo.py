@@ -11,7 +11,7 @@ class PalettaServo():
 		GPIO.setup(m.PIN_MAGNET_PALETTA, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 		self.servo.set_servo_pulsewidth(m.PALETTA_MOTOR, m.PALETTA_INIT)
 		self.zero_paletta = m.PALETTA_INIT
-		print("SERVO: initialization Done")
+		print("PALETTA: initialization Done")
 
 	def calibration(self):
 		for pos in range(m.PALETTA_INIT, m.MAX_MOTOR):
@@ -24,7 +24,7 @@ class PalettaServo():
 		
 		if(self.zero_paletta == m.PALETTA_INIT):
 			print("PALETTA: calibration failed")
-			#self.zero_paletta = ???
+			self.zero_paletta = m.CORRECT_PALETTA
 
 		self.servo.set_servo_pulsewidth(m.PALETTA_MOTOR, self.zero_paletta)
 		print("PALETTA: Zero pos paletta is : {}".format(self.zero_paletta))
@@ -40,15 +40,16 @@ class PalettaServo():
 			pos = self.zero_paletta + m.PALETTA_UNSORTED
 		elif(waste == "PLASTIC"):
 			pos = self.zero_paletta + m.PALETTA_PLASTIC
-		elif(waste == "PAPER"):
-			pos = self.zero_paletta + m.PALETTA_PAPER
 		elif(waste == "GLASS"):
+			pos = self.zero_paletta + m.PALETTA_PAPER
+		elif(waste == "PAPER"):
 			pos = self.zero_paletta + m.PALETTA_GLASS
 		elif(waste == "HOME"):
 			pos = self.zero_paletta
 		else:
 			pos = self.zero_paletta
-			
+		
+		print("PALETTA: {}".format(pos))
 		return pos
 		
 class DiskServo():
@@ -57,7 +58,7 @@ class DiskServo():
 		GPIO.setup(m.PIN_MAGNET_DISK, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 		self.servo.set_servo_pulsewidth(m.DISK_MOTOR, m.DISK_INIT)
 		self.zero_disk = m.DISK_INIT
-		print("SERVO: initialization Done")
+		print("DISK: initialization Done")
 		
 	def calibration(self):
 		for pos in range(m.DISK_INIT, m.MAX_MOTOR):
@@ -70,7 +71,7 @@ class DiskServo():
 		
 		if(self.zero_disk == m.DISK_INIT):
 			print("DISK: calibration failed")
-			#self.zero_paletta = ???
+			self.zero_disk = m.CORRECT_DISK
 			
 		self.servo.set_servo_pulsewidth(m.DISK_MOTOR, self.zero_disk)
 		print("DISK: Zero pos disk is : {}".format(self.zero_disk))
@@ -84,15 +85,16 @@ class DiskServo():
 			pos = self.zero_disk + m.DISK_UNSORTED
 		elif(waste == "PLASTIC"):
 			pos = self.zero_disk + m.DISK_PLASTIC
-		elif(waste == "PAPER"):
-			pos = self.zero_disk + m.DISK_PAPER
 		elif(waste == "GLASS"):
+			pos = self.zero_disk + m.DISK_PAPER
+		elif(waste == "PAPER"):
 			pos = self.zero_disk + m.DISK_GLASS
 		elif(waste == "HOME"):
 			pos = self.zero_disk
 		else:
 			pos = m.DISK_INIT
-			
+		
+		print("DISK: {}".format(pos))	
 		return pos
 
 class DoorServo():

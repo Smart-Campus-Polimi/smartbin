@@ -34,7 +34,7 @@ class Rekognition():
 					if label['Name'] in l.plastic:
 						result["PLASTIC"] += label['Confidence']
 					if label['Name'] in l.aluminium:
-						result["ALUMINIUM"] += label['Confidence']
+						result["PLASTIC"] += label['Confidence']
 					if label['Name'] in l.paper:
 						result["PAPER"] += label['Confidence']
 					if label['Name'] in l.glass:

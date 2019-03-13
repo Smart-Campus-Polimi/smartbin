@@ -49,12 +49,13 @@ deadToF1 = False
 deadToF2 = False
 total_iteration = 0
 
-fill_levels = {
-				"unsorted": 13,
-				"plastic": 3,
-				"paper": 10,
-				"glass": 8
-			   }
+bin_json = {"bin_id": c.BIN_NAME, 
+			"levels": { "unsorted": 13,
+						"plastic": 3,
+						"paper": 10,
+						"glass": 8
+					  }	
+		    }
 
 ####### SIGNAL HANDLER ######
 def signal_handler(signal, frame):
@@ -71,18 +72,29 @@ def signal_handler(signal, frame):
 def on_message(client, userdata, message):
 	print("rec")
 	response = str(message.payload.decode("utf-8"))
-	try:
-		resp_parse = json.loads(response)
-	except ValueError as e:
-		print("malformed json")
+	print(response)
+	if(message.topic == c.FILL_LEVEL_FAKE):
+		try:
+			resp_parse = json.loads(response)
+		except ValueError as e:
+			print("malformed json")
+		
+		for key, val in resp_parse.items():
+			bin_json["levels"][key] = val
+		
+		global CURRENT_STATUS
+		if(CURRENT_STATUS == "IDLE"):
+			CURRENT_STATUS = "SET_FILL_LEVEL"
 	
-	for key, val in resp_parse.items():
-		fill_levels[key] = val
+	if(message.topic == c.TOPIC_TO_FAKE_TO):
+		print("fake")
+		
+		
 	
-	global CURRENT_STATUS
-	if(CURRENT_STATUS == "IDLE"):
-		CURRENT_STATUS = "SET_FILL_LEVEL"
-	
+def on_connect(client, userdata, flags, rc):
+	print("Connected flags"+str(flags)+"result_code"+str(rc)+"client1_id")
+	client.subscribe(c.FILL_LEVEL_FAKE)
+
 ####### SETUP TOF #######
 def setupToF(all_tof=True):
 	GPIO.setwarnings(False)
@@ -140,9 +152,9 @@ def door_callback(channel):
 	isOpen = GPIO.input(c.DOOR_SENSOR)
 
 	if(isOpen and not oldIsOpen):
-		if(CURRENT_STATUS == "PHOTO" or CURRENT_STATUS == "MOTORS" or CURRENT_STATUS == "PHOTO_DONE" or CURRENT_STATUS == "REKOGNITION"):
-			print("ERROR!!!!!!")
-		else:
+		#if(CURRENT_STATUS == "PHOTO" or CURRENT_STATUS == "MOTORS" or CURRENT_STATUS == "PHOTO_DONE" or CURRENT_STATUS == "REKOGNITION"):
+		#	print("ERROR!!!!!!")
+		#else:
 			CURRENT_STATUS = "DOOR_OPEN"
 			doorLed.turnOn()
 			timer_door = threading.Timer(c.TIMER_DOOR, door_forgotten_open)
@@ -214,9 +226,9 @@ if __name__ == "__main__":
 
 			plasticRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'P')
 
-			paperRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'C')
+			paperRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'G')
 
-			glassRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'G')
+			glassRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'C')
 			
 			
 			paletta = Servo.PalettaServo()
@@ -233,7 +245,7 @@ if __name__ == "__main__":
 			client = mqtt.Client("levels")
 			client.connect(c.HOST)
 			client.on_message = on_message
-			client.subscribe(c.FILL_LEVEL_TOPIC)
+			client.on_connect = on_connect
 			
 			
 			client.loop_start()
@@ -246,10 +258,7 @@ if __name__ == "__main__":
 			camera = MyCamera.MyCamera()
 			
 			doorServo = Servo.DoorServo()
-			
-			palettaServo = Servo.PalettaServo()
-			diskServo =  Servo.DiskServo()
-			
+		
 			pool = ThreadPool(processes=1)
 			
 			CURRENT_STATUS = "CHECK_INIT"
@@ -316,6 +325,8 @@ if __name__ == "__main__":
 			ringLed.staticGreen()
 			matrixLed.greenArrow()
 			#doorLed.turnOff()
+			paletta.movePaletta("HOME")
+			disk.moveDisk("HOME")
 			CURRENT_STATUS = "READ_FILL_LEVEL"
 			
 		
@@ -342,7 +353,7 @@ if __name__ == "__main__":
 			distance1 = tof1.get_distance()
 			distance2 = tof2.get_distance()
 			
-			print(distance1, distance2)
+			#print(distance1, distance2)
 			
 						
 			if(distance1 < 0):
@@ -355,7 +366,7 @@ if __name__ == "__main__":
 				deadToF2 = True
 				print("tof2 morto, restart")
 				
-			if(deadToF1 and deadToF2):
+			if(deadToF1 or deadToF2):
 				CURRENT_STATUS = "WASTE_IN"
 			
 			oldWasteIn = wasteIn
@@ -380,6 +391,8 @@ if __name__ == "__main__":
 		
 		##### PHOTO #####
 		elif(CURRENT_STATUS == "PHOTO"):
+			for r in wasteRings:
+				r.turnOffRing()
 			doorLed.turnOn()
 			print("chiudo lo sportello")
 			doorServo.closeLid()
@@ -400,10 +413,11 @@ if __name__ == "__main__":
 		elif(CURRENT_STATUS == "REKOGNITION"):
 			
 			waste_type_gg = "TIMEOUT"
-			waste_type_aws = None
+			waste_type_aws = "UNSORTED"
 
 			if(greengrass):
 				async_result = pool.apply_async(gg.getLabels, (camera.currentPath(),))
+				#gg_conn_timer = Threading.Timer(3, door_forgotten_open)
 						
 			if(aws_rekognition):
 				waste_type_aws = reko.getLabels(camera.currentPath())
@@ -414,35 +428,35 @@ if __name__ == "__main__":
 				print("GG: oggetto riconosciuto, e': {}".format(waste_type_gg))
 
 
-
+			#waste_type = waste_type_aws
 			if(waste_type_gg == "TIMEOUT" or not greengrass):
-				if(waste_type_aws is not None):
-					waste_type = waste_type_aws
-				else:
-					waste_type = "UNSORTED"
+				#if(waste_type_aws is not None):
+				waste_type = waste_type_aws
+				print("this is AWS")
+				#else:
+				#	waste_type = "UNSORTED"
 			else:
 				waste_type = waste_type_gg
+				print("This is Greengrass")
 
 
-				
-			for r in wasteRings:
-				r.turnOffRing()
+			
 				
 			if(waste_type == "UNSORTED"):
-				plasticRing.setWaste(333)
-				fill_levels["unsorted"] += 2
+				unsortedRing.setWaste(333)
+				bin_json["levels"]["unsorted"] += 2
 
 			elif(waste_type == "PLASTIC"):
-				unsortedRing.setWaste(333)
-				fill_levels["plastic"] += 2
-
-			elif(waste_type == "PAPER"):
-				glassRing.setWaste(333)
-				fill_levels["paper"] += 2
+				plasticRing.setWaste(333)
+				bin_json["levels"]["plastic"] += 2
 
 			elif(waste_type == "GLASS"):
 				paperRing.setWaste(333)
-				fill_levels["glass"] += 2
+				bin_json["levels"]["paper"] += 2
+
+			elif(waste_type == "PAPER"):
+				glassRing.setWaste(333)
+				bin_json["levels"]["glass"] += 2
 		
 			
 			if(waste_type == "EMPTY"):
@@ -458,8 +472,9 @@ if __name__ == "__main__":
 			total_iteration += 1
 			
 			#go
-			palettaServo.movePaletta(waste_type)
-			diskServo.moveDisk(waste_type)
+			paletta.movePaletta(waste_type)
+			time.sleep(.2)
+			disk.moveDisk(waste_type)
 			print("illumino led")
 			ringLed.breatheGreen()
 			time.sleep(1.5)
@@ -467,8 +482,8 @@ if __name__ == "__main__":
 			
 			
 			#back
-			diskServo.moveDisk("HOME")
-			palettaServo.movePaletta("HOME")
+			disk.moveDisk("HOME")
+			paletta.movePaletta("HOME")
 			time.sleep(1.5)
 			print("azione finita")
 
@@ -481,7 +496,7 @@ if __name__ == "__main__":
 		
 		##### READ WASTE #####
 		elif(CURRENT_STATUS == "READ_FILL_LEVEL"):
-			for key in fill_levels.keys():
+			for key in bin_json["levels"].keys():
 				if key == "unsorted":
 					pass
 					#fill_levels[key] = 30
@@ -497,24 +512,29 @@ if __name__ == "__main__":
 					pass
 					#fill_levels[key] = 20
 			
-			for key, val in fill_levels.items():
+			for key, val in bin_json["levels"].items():
 				print("{}: {}".format(key, val))
 			
 			
 			CURRENT_STATUS = "SET_FILL_LEVEL"
+			
 		
 		elif(CURRENT_STATUS == "SET_FILL_LEVEL"):
-			for key in fill_levels.keys():
+			for key in bin_json["levels"].keys():
 				if key == "unsorted":
-					unsortedRing.setWaste(fill_levels[key])
-				if key == "plastic":
-					plasticRing.setWaste(fill_levels[key])
+					unsortedRing.setWaste(bin_json["levels"][key])
 				if key == "paper":
-					paperRing.setWaste(fill_levels[key])
+					plasticRing.setWaste(bin_json["levels"][key])
+				if key == "plastic":
+					paperRing.setWaste(bin_json["levels"][key])
 				if key == "glass":
-					glassRing.setWaste(fill_levels[key])	
+					glassRing.setWaste(bin_json["levels"][key])	
 			
 			print("this is the {} iteration".format(total_iteration))
+			CURRENT_STATUS = "SEND_FILL_LEVEL"
+			
+		elif(CURRENT_STATUS == "SEND_FILL_LEVEL"):
+			client.publish(c.FILL_LEVEL_TOPIC, json.dumps(bin_json))
 			CURRENT_STATUS = "IDLE"	
 			
 		##### IDLE #####
@@ -522,16 +542,16 @@ if __name__ == "__main__":
 			if(deadToF1 and deadToF2):
 				#reset tof
 				doorServo.closeLid()
-				ringLed.staticRed()
-				matrixLed.redCross()
+				#ringLed.staticRed()
+				#matrixLed.redCross()
 				tof1.stop_ranging()
 				tof2.stop_ranging()
 				tof1, tof2  = setupToF(all_tof = False)
 				deadToF1 = False
 				deadToF2 = False
 				doorServo.openLid()
-				ringLed.staticGreen()
-				matrixLed.greenArrow()
+				#ringLed.staticGreen()
+				#matrixLed.greenArrow()
 			else:
 				pass
 

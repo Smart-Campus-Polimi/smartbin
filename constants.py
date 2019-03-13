@@ -1,8 +1,8 @@
 
 #MQTT
 HOST = '34.244.160.143'
-FILL_LEVEL_TOPIC = "smartbin/fill_levels"
-
+FILL_LEVEL_FAKE = "smartbin/fill_levels/fake"
+FILL_LEVEL_TOPIC = "smartbin/status/real"
 #GREENGRASS
 HOST = '34.244.160.143'
 HOSTV2 = '63.33.41.143'
@@ -17,10 +17,11 @@ DESTINATION_FOLDER = '/home/ubuntu/vm1-node-service/raw_field_data'
 ORIGIN_FOLDER = '/home/pi/pictures/'
 
 TOPIC_TO_SUBCRIBE_TO = 'response/prediction/trash'
-
+TOPIC_TO_FAKE_TO = 'response/prediction/fake'
+BIN_NAME = "bin0"
 
 #MISCELLANEOUS
-THRESHOLD_TOF = 200
+THRESHOLD_TOF = 240
 BIN_HEIGHT = 800.0
 TIMER_PHOTO = 5 #seconds
 TIMER_DOOR = 10 #seconds

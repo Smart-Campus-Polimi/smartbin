@@ -39,8 +39,8 @@ def parse_msg(resp):
 	
 	try: 	 
 		waste = resp_parse['category'].split(" ")[0]
-		if(float(resp_parse['confidence']) < 0.60):
-			waste = "UNSORTED"
+		#if(float(resp_parse['confidence']) < 0.30):
+		#	waste = "UNSORTED"
 	except ValueError as e:
 		print("GREENGRASS: wrong split")
 		return "UNSORTED"
@@ -79,6 +79,7 @@ def on_connect(client, userdata, flags, rc):
 def timeout_gg_resp():
 	global status, waste, next_one, timer_cheat
 	if(status == "WAIT_RESP"):
+		print("GG: timeout")
 		if(next_one is not None):
 			waste = next_one
 			next_one = None
