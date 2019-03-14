@@ -79,16 +79,14 @@ def on_message(client, userdata, message):
 		except ValueError as e:
 			print("malformed json")
 		
-		for key, val in resp_parse.items():
+		for key, val in resp_parse["levels"].items():
 			bin_json["levels"][key] = val
 		
 		global CURRENT_STATUS
-		if(CURRENT_STATUS == "IDLE"):
-			CURRENT_STATUS = "SET_FILL_LEVEL"
+
+		if(CURRENT_STATUS == "IDLE" or CURRENT_STATUS == "FULL"):
+			CURRENT_STATUS = "SEND_FILL_LEVEL"
 	
-	#if(message.topic == c.TOPIC_TO_FAKE_TO):
-	#	print("fake")
-		
 		
 	
 def on_connect(client, userdata, flags, rc):
@@ -152,9 +150,9 @@ def door_callback(channel):
 	isOpen = GPIO.input(c.DOOR_SENSOR)
 
 	if(isOpen and not oldIsOpen):
-		#if(CURRENT_STATUS == "PHOTO" or CURRENT_STATUS == "MOTORS" or CURRENT_STATUS == "PHOTO_DONE" or CURRENT_STATUS == "REKOGNITION"):
-		#	print("ERROR!!!!!!")
-		#else:
+		if(CURRENT_STATUS == "PHOTO" or CURRENT_STATUS == "MOTORS" or CURRENT_STATUS == "PHOTO_DONE" or CURRENT_STATUS == "REKOGNITION" or CURRENT_STATUS == "FULL" or CURRENT_STATUS == "SEND_FILL_LEVEL" or CURRENT_STATUS == "CHECK_FULL"):
+			print("ERROR!!!!!!")
+		else:
 			CURRENT_STATUS = "DOOR_OPEN"
 			doorLed.turnOn()
 			timer_door = threading.Timer(c.TIMER_DOOR, door_forgotten_open)
@@ -417,7 +415,6 @@ if __name__ == "__main__":
 
 			if(greengrass):
 				async_result = pool.apply_async(gg.getLabels, (camera.currentPath(),))
-				#gg_conn_timer = Threading.Timer(3, door_forgotten_open)
 						
 			if(aws_rekognition):
 				#waste_type_aws = reko.getLabels(camera.currentPath())
@@ -432,7 +429,7 @@ if __name__ == "__main__":
 			if(waste_type_gg == "TIMEOUT" or not greengrass):
 				#if(waste_type_aws is not None):
 				#waste_type = waste_type_aws
-				print("this is AWS")
+				#print("this is AWS")
 				#else:
 				waste_type = "UNSORTED"
 			else:
@@ -490,8 +487,9 @@ if __name__ == "__main__":
 			ringLed.staticGreen()
 			matrixLed.greenArrow()
 			doorServo.openLid()
-			
-			CURRENT_STATUS = "READ_FILL_LEVEL"
+			for r in wasteRings:
+				r.turnOffRing()
+			CURRENT_STATUS = "SEND_FILL_LEVEL"
 			
 		
 		##### READ WASTE #####
@@ -511,11 +509,29 @@ if __name__ == "__main__":
 			for key, val in bin_json["levels"].items():
 				print("{}: {}".format(key, val))
 			
-			
-			CURRENT_STATUS = "SET_FILL_LEVEL"
+			CURRENT_STATUS = "SEND_FILL_LEVEL"
+
+		elif(CURRENT_STATUS == "SEND_FILL_LEVEL"):
+			client.publish(c.FILL_LEVEL_TOPIC, json.dumps(bin_json))
+			CURRENT_STATUS = "CHECK_FULL"	
+
+
+		elif(CURRENT_STATUS == "CHECK_FULL"):
+
+			full_bin = []
+			for key, value in bin_json["levels"].items():
+				if (value >= 100):
+					full_bin.append(key)
+
+			if(len(full_bin) < 1):
+				CURRENT_STATUS = "SET_FILL_LEVEL"
+			else:
+				first_full = True
+				CURRENT_STATUS = "FULL"
 			
 		
 		elif(CURRENT_STATUS == "SET_FILL_LEVEL"):
+			print("this is the {} iteration".format(total_iteration))
 			for key in bin_json["levels"].keys():
 				if key == "unsorted":
 					unsortedRing.setWaste(bin_json["levels"][key])
@@ -525,29 +541,38 @@ if __name__ == "__main__":
 					paperRing.setWaste(bin_json["levels"][key])
 				if key == "glass":
 					glassRing.setWaste(bin_json["levels"][key])	
+
+			CURRENT_STATUS = "IDLE"
 			
-			print("this is the {} iteration".format(total_iteration))
-			CURRENT_STATUS = "SEND_FILL_LEVEL"
-			
-		elif(CURRENT_STATUS == "SEND_FILL_LEVEL"):
-			client.publish(c.FILL_LEVEL_TOPIC, json.dumps(bin_json))
-			CURRENT_STATUS = "IDLE"	
-			
+
+		elif(CURRENT_STATUS == "FULL"):
+			if(first_full):
+				doorServo.closeLid()
+				ringLed.staticRed()
+				matrixLed.redCross()
+				for f in full_bin:
+					if f == "unsorted":
+					unsortedRing.setWaste(100)
+					if f == "paper":
+						plasticRing.setWaste(100)
+					if f == "plastic":
+						paperRing.setWaste(100)
+					if f == "glass":
+						glassRing.setWaste(100)	
+				client.publish("smartbin/message/bin0", "I'm full")
+				first_full = False
+
 		##### IDLE #####
 		elif(CURRENT_STATUS == "IDLE"):
 			if(deadToF1 and deadToF2):
 				#reset tof
 				doorServo.closeLid()
-				#ringLed.staticRed()
-				#matrixLed.redCross()
 				tof1.stop_ranging()
 				tof2.stop_ranging()
 				tof1, tof2  = setupToF(all_tof = False)
 				deadToF1 = False
 				deadToF2 = False
 				doorServo.openLid()
-				#ringLed.staticGreen()
-				#matrixLed.greenArrow()
 			else:
 				pass
 
