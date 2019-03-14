@@ -39,8 +39,8 @@ def parse_msg(resp):
 	
 	try: 	 
 		waste = resp_parse['category'].split(" ")[0]
-		#if(float(resp_parse['confidence']) < 0.30):
-		#	waste = "UNSORTED"
+		if(float(resp_parse['confidence']) < .05):
+			waste = "UNSORTED"
 	except ValueError as e:
 		print("GREENGRASS: wrong split")
 		return "UNSORTED"

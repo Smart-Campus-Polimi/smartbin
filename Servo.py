@@ -40,9 +40,9 @@ class PalettaServo():
 			pos = self.zero_paletta + m.PALETTA_UNSORTED
 		elif(waste == "PLASTIC"):
 			pos = self.zero_paletta + m.PALETTA_PLASTIC
-		elif(waste == "GLASS"):
-			pos = self.zero_paletta + m.PALETTA_PAPER
 		elif(waste == "PAPER"):
+			pos = self.zero_paletta + m.PALETTA_PAPER
+		elif(waste == "GLASS"):
 			pos = self.zero_paletta + m.PALETTA_GLASS
 		elif(waste == "HOME"):
 			pos = self.zero_paletta
@@ -85,9 +85,9 @@ class DiskServo():
 			pos = self.zero_disk + m.DISK_UNSORTED
 		elif(waste == "PLASTIC"):
 			pos = self.zero_disk + m.DISK_PLASTIC
-		elif(waste == "GLASS"):
-			pos = self.zero_disk + m.DISK_PAPER
 		elif(waste == "PAPER"):
+			pos = self.zero_disk + m.DISK_PAPER
+		elif(waste == "GLASS"):
 			pos = self.zero_disk + m.DISK_GLASS
 		elif(waste == "HOME"):
 			pos = self.zero_disk

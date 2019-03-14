@@ -86,8 +86,8 @@ def on_message(client, userdata, message):
 		if(CURRENT_STATUS == "IDLE"):
 			CURRENT_STATUS = "SET_FILL_LEVEL"
 	
-	if(message.topic == c.TOPIC_TO_FAKE_TO):
-		print("fake")
+	#if(message.topic == c.TOPIC_TO_FAKE_TO):
+	#	print("fake")
 		
 		
 	
@@ -128,16 +128,16 @@ def setupToF(all_tof=True):
 	time.sleep(0.50)
 	tof1.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
 	
-	if(all_tof):
-		GPIO.output(c.SENSOR_UNSORTED, GPIO.HIGH)
-		time.sleep(0.50)
-		tof_p.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
+	#if(all_tof):
+	#	GPIO.output(c.SENSOR_UNSORTED, GPIO.HIGH)
+	#	time.sleep(0.50)
+	#	tof_p.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
 		
-		GPIO.output(c.SENSOR_PLASTIC, GPIO.HIGH)
-		time.sleep(0.50)
-		tof_u.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
+	#	GPIO.output(c.SENSOR_PLASTIC, GPIO.HIGH)
+	#	time.sleep(0.50)
+	#	tof_u.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
 
-		return tof, tof1, tof_u, tof_p
+	#	return tof, tof1, tof_u, tof_p
 	
 	return tof, tof1
 
@@ -226,9 +226,9 @@ if __name__ == "__main__":
 
 			plasticRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'P')
 
-			paperRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'G')
+			paperRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'C')
 
-			glassRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'C')
+			glassRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'G')
 			
 			
 			paletta = Servo.PalettaServo()
@@ -450,11 +450,11 @@ if __name__ == "__main__":
 				plasticRing.setWaste(333)
 				bin_json["levels"]["plastic"] += 2
 
-			elif(waste_type == "GLASS"):
+			elif(waste_type == "PAPER"):
 				paperRing.setWaste(333)
 				bin_json["levels"]["paper"] += 2
 
-			elif(waste_type == "PAPER"):
+			elif(waste_type == "GLASS"):
 				glassRing.setWaste(333)
 				bin_json["levels"]["glass"] += 2
 		
@@ -499,18 +499,14 @@ if __name__ == "__main__":
 			for key in bin_json["levels"].keys():
 				if key == "unsorted":
 					pass
-					#fill_levels[key] = 30
 					#fill_levels[key] = read_bin_level(tof_unsorted)
 				if key == "plastic":
 					pass
 					#fill_levels[key] = read_bin_level(tof_plastic)
-					#fill_levels[key] = 60 
 				if key == "paper":
 					pass
-					#fill_levels[key] = 40 
 				if key == "glass":
 					pass
-					#fill_levels[key] = 20
 			
 			for key, val in bin_json["levels"].items():
 				print("{}: {}".format(key, val))
