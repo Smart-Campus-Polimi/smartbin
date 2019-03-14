@@ -1,8 +1,8 @@
-
+BIN_NAME = "bin0"
 #MQTT
 HOST = '34.244.160.143'
 FILL_LEVEL_FAKE = "smartbin/fill_levels/fake"
-FILL_LEVEL_TOPIC = "smartbin/status/real"
+FILL_LEVEL_TOPIC = "smartbin/status/"+BIN_NAME
 #GREENGRASS
 HOST = '34.244.160.143'
 HOSTV2 = '63.33.41.143'

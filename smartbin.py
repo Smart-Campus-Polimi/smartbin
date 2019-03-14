@@ -14,7 +14,7 @@ import thread
 from multiprocessing.pool import ThreadPool
 
 #my imports
-import Rekognition
+#import Rekognition
 import DoorLed
 import RingLed
 import MatrixLed
@@ -252,7 +252,7 @@ if __name__ == "__main__":
 			
 			#tof1, tof2, tof_unsorted, tof_plastic = setupToF()
 			tof1, tof2 = setupToF(False)
-			reko = Rekognition.Rekognition(debug=True)
+			#reko = Rekognition.Rekognition(debug=True)
 			gg = GreenGrass.GreenGrass()
 			
 			camera = MyCamera.MyCamera()
@@ -420,7 +420,7 @@ if __name__ == "__main__":
 				#gg_conn_timer = Threading.Timer(3, door_forgotten_open)
 						
 			if(aws_rekognition):
-				waste_type_aws = reko.getLabels(camera.currentPath())
+				#waste_type_aws = reko.getLabels(camera.currentPath())
 				print("REKO: oggetto riconosciuto, e': {}".format(waste_type_aws))
 	
 			if(greengrass):
@@ -431,10 +431,10 @@ if __name__ == "__main__":
 			#waste_type = waste_type_aws
 			if(waste_type_gg == "TIMEOUT" or not greengrass):
 				#if(waste_type_aws is not None):
-				waste_type = waste_type_aws
+				#waste_type = waste_type_aws
 				print("this is AWS")
 				#else:
-				#	waste_type = "UNSORTED"
+				waste_type = "UNSORTED"
 			else:
 				waste_type = waste_type_gg
 				print("This is Greengrass")
