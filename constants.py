@@ -6,6 +6,7 @@ FILL_LEVEL_TOPIC = "smartbin/status/"+BIN_NAME
 
 TOPIC_TO_SUBCRIBE_TO = 'response/prediction/trash'
 TOPIC_TO_FAKE_TO = 'response/prediction/fake'
+
 #GREENGRASS
 HOST = '34.244.160.143'
 HOSTV2 = '63.33.41.143'
