@@ -70,7 +70,7 @@ def signal_handler(signal, frame):
 
 
 def on_message(client, userdata, message):
-	print("rec")
+	print("recive message")
 	response = str(message.payload.decode("utf-8"))
 	print(response)
 	if(message.topic == c.FILL_LEVEL_FAKE):
@@ -84,9 +84,13 @@ def on_message(client, userdata, message):
 		
 		global CURRENT_STATUS
 
-		if(CURRENT_STATUS == "IDLE" or CURRENT_STATUS == "FULL"):
+		if(CURRENT_STATUS == "IDLE" or CURRENT_STATUS == "FULL" or CURRENT_STATUS == "DOOR_OPEN" or CURRENT_STATUS == "CHECK_TOF"):
 			CURRENT_STATUS = "SEND_FILL_LEVEL"
 	
+	if(message.topic == c.FILL_LEVEL_TOPIC):
+		if(message.retain):
+			for key, val in resp_parse["levels"].items():
+				bin_json["levels"][key] = val
 		
 	
 def on_connect(client, userdata, flags, rc):
@@ -145,22 +149,21 @@ def door_callback(channel):
 	global isOpen
 	global CURRENT_STATUS, OLD_STATUS
 	oldIsOpen = isOpen
-	global timer_door
+	#global timer_door
 
 	isOpen = GPIO.input(c.DOOR_SENSOR)
 
 	if(isOpen and not oldIsOpen):
 		if(CURRENT_STATUS == "PHOTO" or CURRENT_STATUS == "MOTORS" or CURRENT_STATUS == "PHOTO_DONE" or CURRENT_STATUS == "REKOGNITION" or CURRENT_STATUS == "FULL" or CURRENT_STATUS == "SEND_FILL_LEVEL" or CURRENT_STATUS == "CHECK_FULL"):
-			print("ERROR!!!!!!")
+			pass
+			#print("ERROR!!!!!!")
 		else:
 			CURRENT_STATUS = "DOOR_OPEN"
-			doorLed.turnOn()
-			timer_door = threading.Timer(c.TIMER_DOOR, door_forgotten_open)
-			timer_door.start()
+			
 		
 		
 	if(not isOpen and oldIsOpen):
-		if(CURRENT_STATUS == "DOOR_OPEN"):
+		if(CURRENT_STATUS == "DOOR_OPEN" or CURRENT_STATUS == "CHECK_TOF"):
 			CURRENT_STATUS = "IDLE"
 		if(CURRENT_STATUS == "WASTE_IN" or CURRENT_STATUS == "WAIT_CLOSE"):
 			CURRENT_STATUS = "PHOTO"
@@ -344,9 +347,16 @@ if __name__ == "__main__":
 			
 		OLD_STATUS = CURRENT_STATUS
 		
-		
-		##### DOOR OPEN #####
+		##### DOOR_OPEN ######
 		if(CURRENT_STATUS == "DOOR_OPEN"):
+			#global timer_door
+			doorLed.turnOn()
+			timer_door = threading.Timer(c.TIMER_DOOR, door_forgotten_open)
+			timer_door.start()
+			CURRENT_STATUS = "CHECK_TOF"
+		
+		##### CHECK_TOF #####
+		if(CURRENT_STATUS == "CHECK_TOF"):
 			#TODO: create an array with last N values and check wether there are outliers
 			distance1 = tof1.get_distance()
 			distance2 = tof2.get_distance()
@@ -442,18 +452,26 @@ if __name__ == "__main__":
 			if(waste_type == "UNSORTED"):
 				unsortedRing.setWaste(333)
 				bin_json["levels"]["unsorted"] += 2
+				if(bin_json["levels"]["unsorted"] > 100):
+					bin_json["levels"]["unsorted"] = 100
 
 			elif(waste_type == "PLASTIC"):
 				plasticRing.setWaste(333)
 				bin_json["levels"]["plastic"] += 2
+				if(bin_json["levels"]["plastic"] > 100):
+					bin_json["levels"]["plastic"] = 100
 
 			elif(waste_type == "PAPER"):
 				paperRing.setWaste(333)
 				bin_json["levels"]["paper"] += 2
+				if(bin_json["levels"]["paper"] > 100):
+					bin_json["levels"]["paper"] = 100
 
 			elif(waste_type == "GLASS"):
 				glassRing.setWaste(333)
 				bin_json["levels"]["glass"] += 2
+				if(bin_json["levels"]["glass"] > 100):
+					bin_json["levels"]["glass"] = 100
 		
 			
 			if(waste_type == "EMPTY"):
@@ -484,9 +502,7 @@ if __name__ == "__main__":
 			time.sleep(1.5)
 			print("azione finita")
 
-			ringLed.staticGreen()
-			matrixLed.greenArrow()
-			doorServo.openLid()
+			
 			for r in wasteRings:
 				r.turnOffRing()
 			CURRENT_STATUS = "SEND_FILL_LEVEL"
@@ -512,7 +528,7 @@ if __name__ == "__main__":
 			CURRENT_STATUS = "SEND_FILL_LEVEL"
 
 		elif(CURRENT_STATUS == "SEND_FILL_LEVEL"):
-			client.publish(c.FILL_LEVEL_TOPIC, json.dumps(bin_json))
+			client.publish(c.FILL_LEVEL_TOPIC, json.dumps(bin_json), retain=True, qos=1)
 			CURRENT_STATUS = "CHECK_FULL"	
 
 
@@ -531,6 +547,9 @@ if __name__ == "__main__":
 			
 		
 		elif(CURRENT_STATUS == "SET_FILL_LEVEL"):
+			ringLed.staticGreen()
+			matrixLed.greenArrow()
+			doorServo.openLid()
 			print("this is the {} iteration".format(total_iteration))
 			for key in bin_json["levels"].keys():
 				if key == "unsorted":
@@ -543,16 +562,19 @@ if __name__ == "__main__":
 					glassRing.setWaste(bin_json["levels"][key])	
 
 			CURRENT_STATUS = "IDLE"
+			first_idle = True
 			
 
 		elif(CURRENT_STATUS == "FULL"):
 			if(first_full):
+				for r in wasteRings:
+					r.turnOffRing()
 				doorServo.closeLid()
 				ringLed.staticRed()
 				matrixLed.redCross()
 				for f in full_bin:
 					if f == "unsorted":
-					unsortedRing.setWaste(100)
+						unsortedRing.setWaste(100)
 					if f == "paper":
 						plasticRing.setWaste(100)
 					if f == "plastic":
@@ -564,6 +586,10 @@ if __name__ == "__main__":
 
 		##### IDLE #####
 		elif(CURRENT_STATUS == "IDLE"):
+			if(first_idle):
+				first_idle = False
+				if(GPIO.input(c.DOOR_SENSOR)):
+					CURRENT_STATUS = "DOOR_OPEN"
 			if(deadToF1 and deadToF2):
 				#reset tof
 				doorServo.closeLid()
