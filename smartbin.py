@@ -39,6 +39,7 @@ aws_rekognition = True
 #### VARS ####
 #most of them are not used 
 timer_door = None
+#timer_idle = []
 isOpen = False
 oldIsOpen = False
 is_running = False
@@ -152,7 +153,6 @@ def door_callback(channel):
 	#global timer_door
 
 	isOpen = GPIO.input(c.DOOR_SENSOR)
-
 	if(isOpen and not oldIsOpen):
 		if(CURRENT_STATUS == "PHOTO" or CURRENT_STATUS == "MOTORS" or CURRENT_STATUS == "PHOTO_DONE" or CURRENT_STATUS == "REKOGNITION" or CURRENT_STATUS == "FULL" or CURRENT_STATUS == "SEND_FILL_LEVEL" or CURRENT_STATUS == "CHECK_FULL"):
 			pass
@@ -187,6 +187,12 @@ def door_forgotten_open():
 	while(isOpen):
 		#doorLed.blink()
 		pass
+
+#def activate_wipe():
+#	print("active wipe")
+#	ringLed.wipeRing()
+	
+	
 
 def read_bin_level(tof):
 	fill_lev = tof.get_distance()
@@ -243,7 +249,7 @@ if __name__ == "__main__":
 				r.checkStatus()
 			
 			#MQTT
-			client = mqtt.Client("levels")
+			client = mqtt.Client()
 			client.connect(c.HOST)
 			client.on_message = on_message
 			client.on_connect = on_connect
@@ -346,7 +352,11 @@ if __name__ == "__main__":
 			print("\n### Current status: {} - old {}".format(CURRENT_STATUS, OLD_STATUS))
 			
 		OLD_STATUS = CURRENT_STATUS
-		
+		#if(CURRENT_STATUS != "IDLE"):
+		#	print("delete idle timer")
+		#	if(len(timer_idle) > 0):
+		#		timer_idle[0].cancel()
+				
 		##### DOOR_OPEN ######
 		if(CURRENT_STATUS == "DOOR_OPEN"):
 			#global timer_door
@@ -492,7 +502,7 @@ if __name__ == "__main__":
 			disk.moveDisk(waste_type)
 			print("illumino led")
 			ringLed.breatheGreen()
-			time.sleep(1.5)
+			time.sleep(1.8)
 			
 			
 			
@@ -586,7 +596,10 @@ if __name__ == "__main__":
 
 		##### IDLE #####
 		elif(CURRENT_STATUS == "IDLE"):
+			
 			if(first_idle):
+				#print("timer")
+				#timer_idle.append(threading.Timer(c.TIMER_IDLE, activate_wipe))
 				first_idle = False
 				if(GPIO.input(c.DOOR_SENSOR)):
 					CURRENT_STATUS = "DOOR_OPEN"

@@ -40,6 +40,13 @@ class RingLed():
 		except serial.SerialException as e:
 			print("RING ERROR: led breathe red {}".format(e))
 
+	def wipeRing(self):
+		try:
+			self.ser.write(b'#R7!')
+			print("RING: wipe")
+		except serial.SerialException as e:
+			print("RING ERROR: wipe {}".format(e))
+
 	def checkStatus(self):
 		pass
 
