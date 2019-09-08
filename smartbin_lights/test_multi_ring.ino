@@ -20,7 +20,7 @@
 #define OFFSET_WASTE          4
 
 /****** MATRIX ******/
-#define PIN_MATRIX            1
+#define PIN_MATRIX            0
 #define MATRIX_PIXELS        64
 /***** ARROW ANIMATION *****/
 #define LEG_ARROW             8
