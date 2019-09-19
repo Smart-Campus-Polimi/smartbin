@@ -3,7 +3,7 @@ import time
 PIN_MOTOR1 = 24
 PIN_MOTOR2 = 25
 pi = pigpio.pi()
-pos = 900
+pos = 901
 
 pi.set_servo_pulsewidth(PIN_MOTOR2, pos)
 pi.set_servo_pulsewidth(PIN_MOTOR1, pos)
