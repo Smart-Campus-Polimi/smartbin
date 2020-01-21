@@ -176,13 +176,13 @@ def door_callback(channel):
 
 
 def photo_ready(my_cam):
-	print("Scatto foto da timer")
+	print("Taking a picture after the timer")
 	global CURRENT_STATUS
 	CURRENT_STATUS = "WAIT_CLOSE"
 
 def door_forgotten_open():
 	#status!
-	print("porta aprta da troppo tempo")
+	print("Close the fockin door dude!")
 	global isOpen
 	doorLed.blink()
 	while(isOpen):
@@ -325,7 +325,7 @@ if __name__ == "__main__":
 			matrixLed.redCross()
 			while(isOpen):
 				if(startUp):
-					print("--> chiudi lo sportello per avviare lo smartbin")
+					print("--> close the front door to boot the smartbin")
 					doorLed.blink()
 					startUp = False
 			
@@ -334,7 +334,7 @@ if __name__ == "__main__":
 		
 		elif(CURRENT_STATUS == "BOOT_DONE"):
 			print("\n### Current status: {}".format(CURRENT_STATUS))
-			print("--> avvio smartbin...")
+			print("--> boot...")
 			is_running = True
 			setup = False
 			ringLed.staticGreen()
@@ -408,7 +408,7 @@ if __name__ == "__main__":
 				
 		##### WASTE IN #####
 		elif(CURRENT_STATUS == "WASTE_IN"):
-			print("oggetto inserito")
+			print("Rubbish inside")
 			camera.setCameraStatus(False)
 			camera.erasePath()
 			timer_pic = threading.Timer(c.TIMER_PHOTO, photo_ready, [camera])
@@ -429,9 +429,9 @@ if __name__ == "__main__":
 			for r in wasteRings:
 				r.turnOffRing()
 			doorLed.turnOn()
-			print("chiudo lo sportello")
+			print("Close the front door")
 			doorServo.closeLid()
-			print("scatta foto da chiusura porta")
+                        print("Front door is closed: taking picture")
 			timer_pic.cancel()
 			camera.takePhoto()
 			doorLed.turnOff()
@@ -455,11 +455,11 @@ if __name__ == "__main__":
 						
 			if(aws_rekognition):
 				#waste_type_aws = reko.getLabels(camera.currentPath())
-				print("REKO: oggetto riconosciuto, e': {}".format(waste_type_aws))
+				print("REKO: rubbish identified, it's: {}. Innit?".format(waste_type_aws))
 	
 			if(greengrass):
 				waste_type_gg = async_result.get()	
-				print("GG: oggetto riconosciuto, e': {}".format(waste_type_gg))
+				print("GG: rubbish identified, it's: {}. Innit?".format(waste_type_gg))
 
 
 			#waste_type = waste_type_aws
@@ -510,7 +510,7 @@ if __name__ == "__main__":
 		
 		##### MOTORS #####
 		elif(CURRENT_STATUS == "MOTORS"):
-			print("aziono i motori")
+			print("Activate motors")
 			total_iteration += 1
 			
 			#go
@@ -518,7 +518,7 @@ if __name__ == "__main__":
 			    paletta.movePaletta(waste_type)
 			    time.sleep(.2)
 		    	    disk.moveDisk(waste_type)
-			    print("illumino led")
+			    print("Turning on the LEDs")
 			    ringLed.breatheGreen()
 			    time.sleep(1.8)
 			
@@ -528,7 +528,7 @@ if __name__ == "__main__":
 			    disk.moveDisk("HOME")
 			    paletta.movePaletta("HOME")
 			    time.sleep(1.5)
-			    print("azione finita")
+			    print("Action done")
 
 			
 			for r in wasteRings:
