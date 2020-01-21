@@ -32,6 +32,7 @@ GPIO.setmode(GPIO.BCM)
 CURRENT_STATUS = "INIT"
 OLD_STATUS = "NONE"
 
+debugMode = True
 greengrass = True
 aws_rekognition = True
 
@@ -237,14 +238,16 @@ if __name__ == "__main__":
 
 			glassRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'G')
 			
+                        if not debugMode:			
+			    paletta = Servo.PalettaServo()
+			    disk = Servo.DiskServo()
 			
-			paletta = Servo.PalettaServo()
-			disk = Servo.DiskServo()
+			    calib_paletta = paletta.calibration()
+			    calib_disk = disk.calibration()
 			
-			calib_paletta = paletta.calibration()
-			calib_disk = disk.calibration()
+		    	    tof1, tof2 = setupToF(False)
 			
-			wasteRings = [unsortedRing, plasticRing, paperRing, glassRing]
+                        wasteRings = [unsortedRing, plasticRing, paperRing, glassRing]
 			for r in wasteRings:
 				r.checkStatus()
 			
@@ -257,12 +260,13 @@ if __name__ == "__main__":
 			
 			client.loop_start()
 			
-			#tof1, tof2, tof_unsorted, tof_plastic = setupToF()
-			tof1, tof2 = setupToF(False)
-			#reko = Rekognition.Rekognition(debug=True)
+
+			
+                        #reko = Rekognition.Rekognition(debug=True)
 			gg = GreenGrass.GreenGrass()
 			
-			camera = MyCamera.MyCamera()
+			
+                        camera = MyCamera.MyCamera()
 			
 			doorServo = Servo.DoorServo()
 		
@@ -278,14 +282,15 @@ if __name__ == "__main__":
 				errors.append("CAMERA")
 			if(not serialComm.checkStatus()):
 				errors.append("SERIAL")
-			if(not tof1.checkStatus("2b")):
+                        if not debugMode:
+			    if(not tof1.checkStatus("2b")):
 				errors.append("TOF1")
-			if(not tof2.checkStatus("2d")):
+			    if(not tof2.checkStatus("2d")):
 				errors.append("TOF2")
 	
-			while(not calib_disk):
-				print("wait disk calibration")
-			while(not calib_paletta):
+                            while(not calib_disk):
+			    	print("wait disk calibration")
+			    while(not calib_paletta):
 				print("wait paletta calibration")
 				
 			#if no errors set current status = boot
@@ -300,14 +305,18 @@ if __name__ == "__main__":
 		elif(CURRENT_STATUS == "BOOT"):
 			print("\n### Current status: {}".format(CURRENT_STATUS))
 
-			isOpen = GPIO.input(c.DOOR_SENSOR)
-			startUp = True
+                        if not debugMode:
+                            isOpen = GPIO.input(c.DOOR_SENSOR)
+			    startUp = True
 			
-			if(isOpen):
-				CURRENT_STATUS = "DOOR_OPEN_ERROR"
-			else:
+			    if(isOpen):
+			    	CURRENT_STATUS = "DOOR_OPEN_ERROR"
+			    else:
 				CURRENT_STATUS = "BOOT_DONE"
 			
+                        else:
+                            isOpen = False
+                            CURRENT_STATUS = "BOOT_DONE"
 			#END BOOT
 		
 		elif(CURRENT_STATUS == "DOOR_OPEN_ERROR"):
@@ -323,7 +332,6 @@ if __name__ == "__main__":
 			CURRENT_STATUS = "BOOT_DONE"
 			
 		
-
 		elif(CURRENT_STATUS == "BOOT_DONE"):
 			print("\n### Current status: {}".format(CURRENT_STATUS))
 			print("--> avvio smartbin...")
@@ -332,13 +340,14 @@ if __name__ == "__main__":
 			ringLed.staticGreen()
 			matrixLed.greenArrow()
 			#doorLed.turnOff()
-			paletta.movePaletta("HOME")
-			disk.moveDisk("HOME")
+                        if not debugMode:
+                            paletta.movePaletta("HOME")
+			    disk.moveDisk("HOME")
 			CURRENT_STATUS = "READ_FILL_LEVEL"
 			
 		
 		elif(CURRENT_STATUS == "INIT_ERROR"):
-			print("GODAMN!")
+			print("GODDAMN!")
 			print("errors come from {}".format(errors))
 			print("restart")
 			sys.exit()
@@ -368,9 +377,14 @@ if __name__ == "__main__":
 		##### CHECK_TOF #####
 		if(CURRENT_STATUS == "CHECK_TOF"):
 			#TODO: create an array with last N values and check wether there are outliers
-			distance1 = tof1.get_distance()
-			distance2 = tof2.get_distance()
-			
+                        if not debugMode:
+                            distance1 = tof1.get_distance()
+			    distance2 = tof2.get_distance()
+                        else:
+                            keyInput = raw_input("\n***\nWaiting for an input...   ")
+                            if keyInput == "g":
+                                distance1 = 200
+                                distance2 = 200
 			#print(distance1, distance2)
 			
 						
@@ -399,7 +413,10 @@ if __name__ == "__main__":
 			camera.erasePath()
 			timer_pic = threading.Timer(c.TIMER_PHOTO, photo_ready, [camera])
 			timer_pic.start()
-			CURRENT_STATUS = "WAIT_CLOSE"
+                        if debugMode:
+                            CURRENT_STATUS = "PHOTO"
+                        else:
+			    CURRENT_STATUS = "WAIT_CLOSE"
 			
 			
 		##### WAIT CLOSE #####
@@ -497,20 +514,21 @@ if __name__ == "__main__":
 			total_iteration += 1
 			
 			#go
-			paletta.movePaletta(waste_type)
-			time.sleep(.2)
-			disk.moveDisk(waste_type)
-			print("illumino led")
-			ringLed.breatheGreen()
-			time.sleep(1.8)
+                        if not debugMode:
+			    paletta.movePaletta(waste_type)
+			    time.sleep(.2)
+		    	    disk.moveDisk(waste_type)
+			    print("illumino led")
+			    ringLed.breatheGreen()
+			    time.sleep(1.8)
 			
 			
 			
-			#back
-			disk.moveDisk("HOME")
-			paletta.movePaletta("HOME")
-			time.sleep(1.5)
-			print("azione finita")
+			    #back
+			    disk.moveDisk("HOME")
+			    paletta.movePaletta("HOME")
+			    time.sleep(1.5)
+			    print("azione finita")
 
 			
 			for r in wasteRings:
