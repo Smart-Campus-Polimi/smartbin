@@ -1,4 +1,5 @@
 BIN_NAME = "bin0"
+VERSION = 3.0
 #MQTT
 HOST = '34.244.160.143'
 FILL_LEVEL_FAKE = "smartbin/fill_levels/fake"
@@ -8,8 +9,9 @@ TOPIC_TO_SUBCRIBE_TO = 'response/prediction/trash'
 TOPIC_TO_FAKE_TO = 'response/prediction/fake'
 
 #GREENGRASS
-HOST = '34.244.160.143'
-HOSTV2 = '63.33.41.143'
+HOST = '54.154.170.192'
+HOST_OLD = '34.244.160.143'
+HOST_V2 = '63.33.41.143'
 PORT = '22'
 USER = 'ubuntu'
 PASS = 'vodafone5G'
