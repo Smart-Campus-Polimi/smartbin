@@ -10,7 +10,6 @@ import json
 from multiprocessing.pool import ThreadPool
 
 # my imports
-# import Rekognition
 import DoorLed
 import RingLed
 import MatrixLed
@@ -26,18 +25,16 @@ GPIO.setmode(GPIO.BCM)
 CURRENT_STATUS = "INIT"
 OLD_STATUS = "NONE"
 
-debugMode = True
+debugMode = False
 greengrass = True
 aws_rekognition = True
 
 #### VARS ####
 # most of them are not used
 timer_door = None
-# timer_idle = []
 isOpen = False
 oldIsOpen = False
 is_running = False
-# startUp = True
 wasteIn = False
 oldWasteIn = False
 deadToF1 = False
@@ -103,21 +100,15 @@ def setupToF(all_tof=True):
     # Setup GPIO for shutdown pins on each VL53L0X
     GPIO.setup(c.SENSOR1, GPIO.OUT)
     GPIO.setup(c.SENSOR2, GPIO.OUT)
-    # GPIO.setup(c.SENSOR_UNSORTED, GPIO.OUT)
-    # GPIO.setup(c.SENSOR_PLASTIC, GPIO.OUT)
 
     # Set all shutdown pins low to turn off each VL53L0X
     GPIO.output(c.SENSOR1, GPIO.LOW)
     GPIO.output(c.SENSOR2, GPIO.LOW)
-    # GPIO.output(c.SENSOR_UNSORTED, GPIO.LOW)
-    # GPIO.output(c.SENSOR_PLASTIC, GPIO.LOW)
 
     time.sleep(0.50)
 
     tof = VL53L0X.VL53L0X(address=0x2B)
     tof1 = VL53L0X.VL53L0X(address=0x2D)
-    # tof_p = VL53L0X.VL53L0X(address=0x27)
-    # tof_u = VL53L0X.VL53L0X(address=0x29)
 
     GPIO.output(c.SENSOR1, GPIO.HIGH)
     time.sleep(0.50)
@@ -127,17 +118,6 @@ def setupToF(all_tof=True):
     time.sleep(0.50)
     tof1.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
 
-    # if(all_tof):
-    #	GPIO.output(c.SENSOR_UNSORTED, GPIO.HIGH)
-    #	time.sleep(0.50)
-    #	tof_p.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
-
-    #	GPIO.output(c.SENSOR_PLASTIC, GPIO.HIGH)
-    #	time.sleep(0.50)
-    #	tof_u.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
-
-    #	return tof, tof1, tof_u, tof_p
-
     return tof, tof1
 
 
@@ -145,10 +125,9 @@ def door_callback(channel):
     global isOpen
     global CURRENT_STATUS, OLD_STATUS
     oldIsOpen = isOpen
-    # global timer_door
 
     isOpen = GPIO.input(c.DOOR_SENSOR)
-    if (isOpen and not oldIsOpen):
+    if isOpen and not oldIsOpen:
         if (
                 CURRENT_STATUS == "PHOTO" or CURRENT_STATUS == "MOTORS" or CURRENT_STATUS == "PHOTO_DONE" or CURRENT_STATUS == "REKOGNITION" or CURRENT_STATUS == "FULL" or CURRENT_STATUS == "SEND_FILL_LEVEL" or CURRENT_STATUS == "CHECK_FULL"):
             pass
@@ -156,10 +135,10 @@ def door_callback(channel):
         else:
             CURRENT_STATUS = "DOOR_OPEN"
 
-    if (not isOpen and oldIsOpen):
-        if (CURRENT_STATUS == "DOOR_OPEN" or CURRENT_STATUS == "CHECK_TOF"):
+    if not isOpen and oldIsOpen:
+        if CURRENT_STATUS == "DOOR_OPEN" or CURRENT_STATUS == "CHECK_TOF":
             CURRENT_STATUS = "IDLE"
-        if (CURRENT_STATUS == "WASTE_IN" or CURRENT_STATUS == "WAIT_CLOSE"):
+        if CURRENT_STATUS == "WASTE_IN" or CURRENT_STATUS == "WAIT_CLOSE":
             CURRENT_STATUS = "PHOTO"
 
         doorLed.turnOff()  # move up in current status idle (if door open)
@@ -374,7 +353,7 @@ if __name__ == "__main__":
                 distance1 = tof1.get_distance()
                 distance2 = tof2.get_distance()
             else:
-                keyInput = raw_input("\n***\nWaiting for an input...   ")
+                keyInput = input("\n***\nWaiting for an input...   ")
                 if keyInput == "g":
                     distance1 = 200
                     distance2 = 200

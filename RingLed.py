@@ -1,7 +1,7 @@
 import serial
 
 
-class RingLed():
+class RingLed:
 	def __init__(self, ser):
 		self.ser = ser
 	
