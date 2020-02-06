@@ -8,9 +8,9 @@ class RingLed:
 	def turnOff(self):
 		try:
 			self.ser.write(b'#R0!')
-			print("RING: spengo ring")
+			print("RING: turn off ring")
 		except serial.SerialException as e:
-			print("RING ERROR: spengo ring {}".format(e))
+			print("RING ERROR: turn off ring {}".format(e))
 
 	def staticGreen(self):
 		try: 
@@ -48,14 +48,17 @@ class RingLed:
 			print("RING ERROR: wipe {}".format(e))
 
 	def checkStatus(self):
+		# TODO
 		pass
 
 	def waitingForToF(self):
+		# TODO
 		pass
 
 	def ToFRunning(self):
+		# TODO
 		pass
 
 	def ToFNOTRunning(self):
-		#differenciate
+		# TODO
 		pass

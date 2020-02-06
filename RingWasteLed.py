@@ -1,7 +1,7 @@
 import serial
 
 
-class RingWasteLed():
+class RingWasteLed:
 	def __init__(self, ser, waste_type):
 		self.ser = ser
 		self.waste_type = waste_type

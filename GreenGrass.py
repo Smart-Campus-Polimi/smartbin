@@ -11,7 +11,6 @@ HOSTV2 = '63.33.41.143'
 PORT = '22'
 USER = 'ubuntu'
 PASS = 'vodafone5G'
-# KEY_PATH = '/Users/drosdesd/Dropbox/edo_repo/smart_campus/'
 KEY_PATH = '/home/pi/certs/'
 KEY = KEY_PATH + 'vf-it-5g.pem'
 TIMEOUT_GG_RESPONSE = 1.5
@@ -22,7 +21,7 @@ DESTINATION_FOLDER = '/home/ubuntu/vm1-node-service/raw_field_data'
 
 ORIGIN_FOLDER = '/home/pi/pictures/'
 
-TOPIC_TO_SUBCRIBE_TO = 'response/prediction/trash'
+TOPIC_TO_SUBSCRIBE_TO = 'response/prediction/trash'
 TOPIC_FAKE = 'response/prediction/fake'
 
 status = "NONE"
@@ -31,7 +30,8 @@ next_one = None
 timer_cheat = None
 
 
-def parse_msg(resp):
+def _parse_msg(resp):
+    _waste = None
     try:
         resp_parse = json.loads(resp)
     except ValueError as e:
@@ -39,52 +39,52 @@ def parse_msg(resp):
         return "UNSORTED"
 
     try:
-        waste = resp_parse['category'].split(" ")[0]
-        if (float(resp_parse['confidence']) < .05):
-            waste = "UNSORTED"
+        _waste = resp_parse['category'].split(" ")[0]
+        if float(resp_parse['confidence']) < .05:
+            _waste = "UNSORTED"
     except ValueError as e:
         print("GREENGRASS: wrong split")
         return "UNSORTED"
 
-    return waste
+    return _waste
 
 
 def on_message_gg(client, userdata, message):
     global status, waste, next_one, timer_cheat
     print("GREENGRASS: message received")
     if status == "WAIT_RESP":
-        if (message.topic == TOPIC_TO_SUBCRIBE_TO):
-            if (next_one is None):
-                waste = parse_msg(str(message.payload.decode("utf-8")))
+        if message.topic == TOPIC_TO_SUBSCRIBE_TO:
+            if next_one is None:
+                waste = _parse_msg(str(message.payload.decode("utf-8")))
             else:
                 waste = next_one
                 next_one = None
                 timer_cheat.cancel()
 
-        if (message.topic == TOPIC_FAKE):
-            waste = parse_msg(str(message.payload.decode("utf-8")))
+        if message.topic == TOPIC_FAKE:
+            waste = _parse_msg(str(message.payload.decode("utf-8")))
 
         status = "SEND_RESP"
 
     else:
-        if (message.topic == TOPIC_FAKE):
-            next_one = parse_msg(str(message.payload.decode("utf-8")))
+        if message.topic == TOPIC_FAKE:
+            next_one = _parse_msg(str(message.payload.decode("utf-8")))
             print("GREENGRASS: next waste is {}".format(next_one))
-            timer_cheat = threading.Timer(TIMEOUT_CHEAT, timeout_cheat)
+            timer_cheat = threading.Timer(TIMEOUT_CHEAT, _timeout_cheat)
             timer_cheat.start()
 
 
 def on_connect(client, userdata, flags, rc):
     print("GREENGRASS: Connected with result code " + str(rc))
-    client.subscribe(TOPIC_TO_SUBCRIBE_TO)
+    client.subscribe(TOPIC_TO_SUBSCRIBE_TO)
     client.subscribe(TOPIC_FAKE)
 
 
-def timeout_gg_resp():
+def _timeout_gg_resp():
     global status, waste, next_one, timer_cheat
-    if (status == "WAIT_RESP"):
+    if status == "WAIT_RESP":
         print("GG: timeout")
-        if (next_one is not None):
+        if next_one is not None:
             waste = next_one
             next_one = None
             timer_cheat.cancel()
@@ -94,45 +94,45 @@ def timeout_gg_resp():
         status = "SEND_RESP"
 
 
-def timeout_cheat():
+def _timeout_cheat():
     global next_one
     next_one = None
     print("GREENGRASS: next_one expired")
 
 
-class GreenGrass():
+def _createSSHClient(server, port, user, key):
+    cl = paramiko.SSHClient()
+    cl.load_system_host_keys()
+    cl.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    cl.connect(server, port, user, key_filename=key)
+    return cl
+
+
+class GreenGrass:
     def __init__(self):
-        self.ssh = self._createSSHClient(c.HOST, PORT, USER, KEY)
+        self.ssh = _createSSHClient(c.HOST, PORT, USER, KEY)
         self.scp = SCPClient(self.ssh.get_transport())
 
         self.client = mqtt.Client()
         self.client.on_connect = on_connect
         self.client.on_message = on_message_gg
         self.client.connect(c.HOST)
-        # self.client.subscribe(TOPIC_TO_SUBCRIBE_TO)
 
         self.client.loop_start()
         print("GREENGRASS: initialization done")
 
-    def _createSSHClient(self, server, port, user, key):
-        cl = paramiko.SSHClient()
-        cl.load_system_host_keys()
-        cl.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        cl.connect(server, port, user, key_filename=key)
-        return cl
-
-    def getLabels(self, fileName):
+    def getLabels(self, file_name):
         print("-----\nNEW GG REQUEST")
         time_s = time.time()
         global status
         with self.scp:
-            self.scp.put(fileName, DESTINATION_FOLDER)
+            self.scp.put(file_name, DESTINATION_FOLDER)
 
         status = "WAIT_RESP"
         print("GREENGRASS: File Sent")
         print("GREENGRASS: scp time {0:.2f} sec".format(time.time() - time_s))
 
-        t = threading.Timer(TIMEOUT_GG_RESPONSE, timeout_gg_resp)
+        t = threading.Timer(TIMEOUT_GG_RESPONSE, _timeout_gg_resp)
         t.start()
 
         while status != "SEND_RESP":

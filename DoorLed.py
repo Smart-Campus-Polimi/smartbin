@@ -1,30 +1,30 @@
 import serial
 
 
-class DoorLed():
+class DoorLed:
 	def __init__(self, ser):
 		self.ser = ser
 	
 	def turnOff(self):
 		try:
 			self.ser.write(b'#D0!')
-			print("DOOR: spengo luci porta")
+			print("DOOR: turn off door lights")
 		except serial.SerialException as e:
-			print("DOOR ERROR: spengo luci porta {}".format(e))
+			print("DOOR ERROR: turn off door lights {}".format(e))
 
 	def turnOn(self):
 		try: 
 			self.ser.write(b'#D1!')
-			print("DOOR: accendo luci porta")
+			print("DOOR: turn on door lights")
 		except serial.SerialException as e:
-			print("DOOR ERROR: accendo luci porta {}".format(e))
+			print("DOOR ERROR: turn on door lights {}".format(e))
 
 	def blink(self):
 		try:
 			self.ser.write(b'#D2!')
-			print("DOOR: lampeggio porta (errore)")
+			print("DOOR: door blink (error)")
 		except serial.SerialException as e:
-			print("DOOR ERROR: lampeggio luci porta {}".format(e))
+			print("DOOR ERROR: door blink {}".format(e))
 
 	def checkStatus(self):
 		pass

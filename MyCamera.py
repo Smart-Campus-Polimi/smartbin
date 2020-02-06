@@ -13,7 +13,7 @@ PICTURE_DIRECTORY = '~/Pictures/'
 class MyCamera:
     def __init__(self):
         pygame.camera.init()
-        self.photoDone = False
+        self.photo_done = False
         self.file_name = None
         try:
             self.dev = pygame.camera.list_cameras()[0]
@@ -34,32 +34,32 @@ class MyCamera:
         return True
 
     def takePhoto(self):
-        startTime = time.time()
+        start_time = time.time()
         self.file_name = datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
         self.file_name = os.path.expanduser(PICTURE_DIRECTORY) + self.file_name + ".jpg"
 
         print(self.my_cam)
 
-        self.photoDone = False
+        self.photo_done = False
         print("CAMERA: take the picture")
-        while (not self.photoDone):
+        while not self.photo_done:
             try:
                 self.my_cam.start()
                 img = self.my_cam.get_image()
-                self.photoDone = True
+                self.photo_done = True
             except Exception as e:
                 print("CAMERA: unable to start the cam {}".format(e))
                 print("CAMERA: retry in 1 sec")
                 time.sleep(1)
 
-        photoTime = time.time() - startTime
-        print("CAMERA: photo taken in  {}s".format(photoTime))
+        photo_time = time.time() - start_time
+        print("CAMERA: photo taken in  {}s".format(photo_time))
 
         # TODO: try except path?
         pygame.image.save(img, self.file_name)
 
-        saveTime = time.time() - photoTime - startTime
-        print("CAMERA: photo saved in {}s".format(saveTime))
+        save_time = time.time() - photo_time - start_time
+        print("CAMERA: photo saved in {}s".format(save_time))
         self.my_cam.stop()
         return self.file_name
 
@@ -72,10 +72,10 @@ class MyCamera:
 
     #### PHOTO ####
     def isPhotoDone(self):
-        return self.photoDone
+        return self.photo_done
 
     # maybe is better to have a switch state method
     def setCameraStatus(self, status):
-        self.photoDone = status
-        if (not self.photoDone):
+        self.photo_done = status
+        if not self.photo_done:
             self.file_name = None

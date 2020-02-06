@@ -1,16 +1,16 @@
 import serial
 
 
-class MatrixLed():
+class MatrixLed:
 	def __init__(self, ser):
 		self.ser = ser
 	
 	def turnOff(self):
 		try:
 			self.ser.write(b'#M0!')
-			print("MATRIX: spengo matrix")
+			print("MATRIX: turn off matrix")
 		except serial.SerialException as e:
-			print("MATRIX: spengo matrix {}".format(e))
+			print("MATRIX: turn off matrix {}".format(e))
 
 	def greenArrow(self):
 		try:
@@ -36,6 +36,5 @@ class MatrixLed():
 		except serial.SerialException as e:
 			print("MATRIX ERROR: arrow animation {}".format(e))
 		
-
 	def checkStatus(self):
 		pass
