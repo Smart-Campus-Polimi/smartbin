@@ -1,0 +1,7 @@
+/.python-version
+/VL53L0X_rasp_python/
+/cameraTest/test.jpg
+/cameraTest/filename.jpg
+/pixelTest/
+*.pyc
+/motorTest/
