@@ -1,22 +1,22 @@
 #!/usr/bin/python3
-import RPi.GPIO as GPIO
+#import RPi.GPIO as GPIO
 import sys
-import VL53L0X
+#import VL53L0X
 import time
 import threading
 import signal
-import paho.mqtt.client as mqtt
+#import paho.mqtt.client as mqtt
 import json
 from multiprocessing.pool import ThreadPool
 
 # my imports
-import DoorLed
-import RingLed
-import MatrixLed
+#import DoorLed
+#import RingLed
+#import MatrixLed
 import MyCamera
 import SerialHandler
-import Servo
-import RingWasteLed
+#import Servo
+#import RingWasteLed
 import GreenGrass
 import constants as c
 import LocalRecognizer
