@@ -14,7 +14,7 @@ from multiprocessing.pool import ThreadPool
 #import RingLed
 #import MatrixLed
 import MyCamera
-import SerialHandler
+#import SerialHandler
 #import Servo
 #import RingWasteLed
 import GreenGrass
