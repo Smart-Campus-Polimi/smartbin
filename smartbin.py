@@ -1,11 +1,11 @@
 #!/usr/bin/python3
-#import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 import sys
 #import VL53L0X
 import time
 import threading
-import signal
-#import paho.mqtt.client as mqtt
+#import signal
+import paho.mqtt.client as mqtt
 import json
 from multiprocessing.pool import ThreadPool
 
@@ -17,7 +17,7 @@ import MyCamera
 import SerialHandler
 #import Servo
 #import RingWasteLed
-import GreenGrass
+#import GreenGrass
 import constants as c
 import LocalRecognizer
 
@@ -53,15 +53,15 @@ bin_json = {"bin_id": c.BIN_NAME,
 
 
 ####### SIGNAL HANDLER ######
-def signal_handler(signal, frame):
-    print("Exit from smartbin!")
+#def signal_handler(signal, frame):
+#    print("Exit from smartbin!")
 #    doorLed.turnOff()
 #    ringLed.turnOff()
 #    matrixLed.turnOff()
 #    for r in wasteRings:
 #        r.setWaste(0)
 #    doorServo.openLid()
-    sys.exit(0)
+#    sys.exit(0)
 
 
 def on_message(client, userdata, message):
@@ -184,7 +184,7 @@ def photo_ready(my_cam):
 #GPIO.add_event_detect(c.DOOR_SENSOR, GPIO.BOTH, callback=door_callback)
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, signal_handler)
+#    signal.signal(signal.SIGINT, signal_handler)
     print("STARTING SMARTBIN V{}...".format(c.VERSION))
 
     CURRENT_STATUS = "INIT"
@@ -192,7 +192,7 @@ if __name__ == "__main__":
     while setup:
         if CURRENT_STATUS == "INIT":
             print("\n### Current status: {}".format(CURRENT_STATUS))
-            serialComm = SerialHandler.SerialHandler()
+#            serialComm = SerialHandler.SerialHandler()
 
 #            print("Checking Door...")
 #            doorLed = DoorLed.DoorLed(serialComm.getSerialPort())
@@ -240,7 +240,7 @@ if __name__ == "__main__":
             # reko = Rekognition.Rekognition(debug=True)
 
             print("MQTT tentative connection...", end=' ')
-            gg = GreenGrass.GreenGrass()
+            #gg = GreenGrass.GreenGrass()
             print("DONE")
 
             LRec = LocalRecognizer.LocalRecognizer()
@@ -259,8 +259,8 @@ if __name__ == "__main__":
             errors = []
             if (not camera.checkStatus()):
                 errors.append("CAMERA")
-            if (not serialComm.checkStatus()):
-                errors.append("SERIAL")
+#            if (not serialComm.checkStatus()):
+#                errors.append("SERIAL")
             if not debugMode:
                 if (not tof1.checkStatus("2b")):
                     errors.append("TOF1")
@@ -426,15 +426,15 @@ if __name__ == "__main__":
             waste_type_aws = "UNSORTED"
             waste_type_lrec = "UNSORTED"
 
-            if (greengrass):
-                async_result = pool.apply_async(gg.getLabels, (camera.currentPath(),))
+ #           if (greengrass):
+ #               async_result = pool.apply_async(gg.getLabels, (camera.currentPath(),))
 
             if (aws_rekognition):
                 # waste_type_aws = reko.getLabels(camera.currentPath())
                 print("REKO: rubbish identified, it's: {}. Innit?".format(waste_type_aws))
 
-            if (greengrass):
-                waste_type_gg = async_result.get()
+ #           if (greengrass):
+ #               waste_type_gg = async_result.get()
                 print("GG: rubbish identified, it's: {}. Innit?".format(waste_type_gg))
             
             if (local_recognition):
@@ -594,8 +594,8 @@ if __name__ == "__main__":
                 # print("timer")
                 # timer_idle.append(threading.Timer(c.TIMER_IDLE, activate_wipe))
                 first_idle = False
-                if (GPIO.input(c.DOOR_SENSOR)):
-                    CURRENT_STATUS = "DOOR_OPEN"
+#                if (GPIO.input(c.DOOR_SENSOR)):
+#                    CURRENT_STATUS = "DOOR_OPEN"
             if (deadToF1 and deadToF2):
                 # reset tof
                 doorServo.closeLid()
