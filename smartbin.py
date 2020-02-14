@@ -1,33 +1,35 @@
 #!/usr/bin/python3
-import RPi.GPIO as GPIO
+#import RPi.GPIO as GPIO
 import sys
-import VL53L0X
+#import VL53L0X
 import time
 import threading
 import signal
-import paho.mqtt.client as mqtt
+#import paho.mqtt.client as mqtt
 import json
 from multiprocessing.pool import ThreadPool
 
 # my imports
-import DoorLed
-import RingLed
-import MatrixLed
+#import DoorLed
+#import RingLed
+#import MatrixLed
 import MyCamera
 import SerialHandler
-import Servo
-import RingWasteLed
+#import Servo
+#import RingWasteLed
 import GreenGrass
 import constants as c
+import LocalRecognizer
 
 GPIO.setmode(GPIO.BCM)
 
 CURRENT_STATUS = "INIT"
 OLD_STATUS = "NONE"
 
-debugMode = False
-greengrass = True
-aws_rekognition = True
+debugMode = True
+greengrass = False
+aws_rekognition = False
+local_recognition = True
 
 #### VARS ####
 # most of them are not used
@@ -53,12 +55,12 @@ bin_json = {"bin_id": c.BIN_NAME,
 ####### SIGNAL HANDLER ######
 def signal_handler(signal, frame):
     print("Exit from smartbin!")
-    doorLed.turnOff()
-    ringLed.turnOff()
-    matrixLed.turnOff()
-    for r in wasteRings:
-        r.setWaste(0)
-    doorServo.openLid()
+#    doorLed.turnOff()
+#    ringLed.turnOff()
+#    matrixLed.turnOff()
+#    for r in wasteRings:
+#        r.setWaste(0)
+#    doorServo.openLid()
     sys.exit(0)
 
 
@@ -94,57 +96,57 @@ def on_connect(client, userdata, flags, rc):
 
 
 ####### SETUP TOF #######
-def setupToF(all_tof=True):
-    GPIO.setwarnings(False)
+#def setupToF(all_tof=True):
+#    GPIO.setwarnings(False)
+#
+#    # Setup GPIO for shutdown pins on each VL53L0X
+#    GPIO.setup(c.SENSOR1, GPIO.OUT)
+#    GPIO.setup(c.SENSOR2, GPIO.OUT)
+#
+#    # Set all shutdown pins low to turn off each VL53L0X
+#    GPIO.output(c.SENSOR1, GPIO.LOW)
+#    GPIO.output(c.SENSOR2, GPIO.LOW)
+#
+#    time.sleep(0.50)
+#
+#    tof = VL53L0X.VL53L0X(address=0x2B)
+#    tof1 = VL53L0X.VL53L0X(address=0x2D)
+#
+#    GPIO.output(c.SENSOR1, GPIO.HIGH)
+#    time.sleep(0.50)
+#    tof.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
+#
+#    GPIO.output(c.SENSOR2, GPIO.HIGH)
+#    time.sleep(0.50)
+#    tof1.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
+#
+#    return tof, tof1
 
-    # Setup GPIO for shutdown pins on each VL53L0X
-    GPIO.setup(c.SENSOR1, GPIO.OUT)
-    GPIO.setup(c.SENSOR2, GPIO.OUT)
 
-    # Set all shutdown pins low to turn off each VL53L0X
-    GPIO.output(c.SENSOR1, GPIO.LOW)
-    GPIO.output(c.SENSOR2, GPIO.LOW)
-
-    time.sleep(0.50)
-
-    tof = VL53L0X.VL53L0X(address=0x2B)
-    tof1 = VL53L0X.VL53L0X(address=0x2D)
-
-    GPIO.output(c.SENSOR1, GPIO.HIGH)
-    time.sleep(0.50)
-    tof.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
-
-    GPIO.output(c.SENSOR2, GPIO.HIGH)
-    time.sleep(0.50)
-    tof1.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
-
-    return tof, tof1
-
-
-def door_callback(channel):
-    global isOpen
-    global CURRENT_STATUS, OLD_STATUS
-    oldIsOpen = isOpen
-
-    isOpen = GPIO.input(c.DOOR_SENSOR)
-    if isOpen and not oldIsOpen:
-        if (
-                CURRENT_STATUS == "PHOTO" or CURRENT_STATUS == "MOTORS" or CURRENT_STATUS == "PHOTO_DONE" or CURRENT_STATUS == "REKOGNITION" or CURRENT_STATUS == "FULL" or CURRENT_STATUS == "SEND_FILL_LEVEL" or CURRENT_STATUS == "CHECK_FULL"):
-            pass
-        # print("ERROR!!!!!!")
-        else:
-            CURRENT_STATUS = "DOOR_OPEN"
-
-    if not isOpen and oldIsOpen:
-        if CURRENT_STATUS == "DOOR_OPEN" or CURRENT_STATUS == "CHECK_TOF":
-            CURRENT_STATUS = "IDLE"
-        if CURRENT_STATUS == "WASTE_IN" or CURRENT_STATUS == "WAIT_CLOSE":
-            CURRENT_STATUS = "PHOTO"
-
-        doorLed.turnOff()  # move up in current status idle (if door open)
-        if (timer_door is not None):
-            if (timer_door.is_alive()):
-                timer_door.cancel()
+#def door_callback(channel):
+#    global isOpen
+#    global CURRENT_STATUS, OLD_STATUS
+#    oldIsOpen = isOpen
+#
+#    isOpen = GPIO.input(c.DOOR_SENSOR)
+#    if isOpen and not oldIsOpen:
+#        if (
+#                CURRENT_STATUS == "PHOTO" or CURRENT_STATUS == "MOTORS" or CURRENT_STATUS == "PHOTO_DONE" or CURRENT_STATUS == "REKOGNITION" or CURRENT_STATUS == "FULL" or CURRENT_STATUS == "SEND_FILL_LEVEL" or CURRENT_STATUS == "CHECK_FULL"):
+#            pass
+#        # print("ERROR!!!!!!")
+#        else:
+#            CURRENT_STATUS = "DOOR_OPEN"
+#
+#    if not isOpen and oldIsOpen:
+#        if CURRENT_STATUS == "DOOR_OPEN" or CURRENT_STATUS == "CHECK_TOF":
+#            CURRENT_STATUS = "IDLE"
+#        if CURRENT_STATUS == "WASTE_IN" or CURRENT_STATUS == "WAIT_CLOSE":
+#            CURRENT_STATUS = "PHOTO"
+#
+#        doorLed.turnOff()  # move up in current status idle (if door open)
+#        if (timer_door is not None):
+#            if (timer_door.is_alive()):
+#                timer_door.cancel()
 
 
 def photo_ready(my_cam):
@@ -153,14 +155,14 @@ def photo_ready(my_cam):
     CURRENT_STATUS = "WAIT_CLOSE"
 
 
-def door_forgotten_open():
-    # status!
-    print("Close the fockin door dude!")
-    global isOpen
-    doorLed.blink()
-    while (isOpen):
-        # doorLed.blink()
-        pass
+#def door_forgotten_open():
+#    # status!
+#    print("Close the fockin door dude!")
+#    global isOpen
+#    doorLed.blink()
+#    while (isOpen):
+#        # doorLed.blink()
+#        pass
 
 
 # def activate_wipe():
@@ -168,18 +170,18 @@ def door_forgotten_open():
 #	ringLed.wipeRing()
 
 
-def read_bin_level(tof):
-    fill_lev = tof.get_distance()
-    if (fill_lev > 0):
-        level = int((fill_lev / c.BIN_HEIGHT) * 100.0)
-        if (level > 100):
-            level = 100
-        return level
+#def read_bin_level(tof):
+#    fill_lev = tof.get_distance()
+#    if (fill_lev > 0):
+#        level = int((fill_lev / c.BIN_HEIGHT) * 100.0)
+#        if (level > 100):
+#            level = 100
+#        return level
 
 
 ##### DOOR SETUP #####
-GPIO.setup(c.DOOR_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.add_event_detect(c.DOOR_SENSOR, GPIO.BOTH, callback=door_callback)
+#GPIO.setup(c.DOOR_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+#GPIO.add_event_detect(c.DOOR_SENSOR, GPIO.BOTH, callback=door_callback)
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
@@ -192,23 +194,23 @@ if __name__ == "__main__":
             print("\n### Current status: {}".format(CURRENT_STATUS))
             serialComm = SerialHandler.SerialHandler()
 
-            print("Checking Door...")
-            doorLed = DoorLed.DoorLed(serialComm.getSerialPort())
-            doorLed.checkStatus()
+#            print("Checking Door...")
+#            doorLed = DoorLed.DoorLed(serialComm.getSerialPort())
+#            doorLed.checkStatus()
 
-            print("Checking Main Ring...")
-            ringLed = RingLed.RingLed(serialComm.getSerialPort())
-            ringLed.checkStatus()
+#            print("Checking Main Ring...")
+#            ringLed = RingLed.RingLed(serialComm.getSerialPort())
+#            ringLed.checkStatus()
 
-            print("Checking Matrix...")
-            matrixLed = MatrixLed.MatrixLed(serialComm.getSerialPort())
-            matrixLed.checkStatus()
+#            print("Checking Matrix...")
+#            matrixLed = MatrixLed.MatrixLed(serialComm.getSerialPort())
+#            matrixLed.checkStatus()
 
-            print("Checking Rubbish Ring...")
-            unsortedRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'U')
-            plasticRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'P')
-            paperRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'C')
-            glassRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'G')
+#            print("Checking Rubbish Ring...")
+#            unsortedRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'U')
+#            plasticRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'P')
+#            paperRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'C')
+#            glassRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'G')
 
 
             if not debugMode:
@@ -220,9 +222,9 @@ if __name__ == "__main__":
 
                 tof1, tof2 = setupToF(False)
 
-            wasteRings = [unsortedRing, plasticRing, paperRing, glassRing]
-            for r in wasteRings:
-                r.checkStatus()
+#            wasteRings = [unsortedRing, plasticRing, paperRing, glassRing]
+#            for r in wasteRings:
+#                r.checkStatus()
 
             # MQTT
             print("\n")
@@ -241,9 +243,11 @@ if __name__ == "__main__":
             gg = GreenGrass.GreenGrass()
             print("DONE")
 
+            LRec = LocalRecognizer.LocalRecognizer()
+            
             camera = MyCamera.MyCamera()
 
-            doorServo = Servo.DoorServo()
+#            doorServo = Servo.DoorServo()
 
             pool = ThreadPool(processes=1)
 
@@ -296,12 +300,12 @@ if __name__ == "__main__":
 
         elif (CURRENT_STATUS == "DOOR_OPEN_ERROR"):
             print("\n### Current status: {}".format(CURRENT_STATUS))
-            ringLed.staticRed()
-            matrixLed.redCross()
+#            ringLed.staticRed()
+#            matrixLed.redCross()
             while (isOpen):
                 if (startUp):
                     print("--> close the front door to boot the smartbin")
-                    doorLed.blink()
+#                    doorLed.blink()
                     startUp = False
 
             CURRENT_STATUS = "BOOT_DONE"
@@ -312,8 +316,8 @@ if __name__ == "__main__":
             print("--> boot...")
             is_running = True
             setup = False
-            ringLed.staticGreen()
-            matrixLed.greenArrow()
+#            ringLed.staticGreen()
+#            matrixLed.greenArrow()
             # doorLed.turnOff()
             if not debugMode:
                 paletta.movePaletta("HOME")
@@ -341,9 +345,9 @@ if __name__ == "__main__":
         ##### DOOR_OPEN ######
         if (CURRENT_STATUS == "DOOR_OPEN"):
             # global timer_door
-            doorLed.turnOn()
-            timer_door = threading.Timer(c.TIMER_DOOR, door_forgotten_open)
-            timer_door.start()
+#            doorLed.turnOn()
+#            timer_door = threading.Timer(c.TIMER_DOOR, door_forgotten_open)
+#            timer_door.start()
             CURRENT_STATUS = "CHECK_TOF"
 
         ##### CHECK_TOF #####
@@ -397,15 +401,15 @@ if __name__ == "__main__":
 
         ##### PHOTO #####
         elif (CURRENT_STATUS == "PHOTO"):
-            for r in wasteRings:
-                r.turnOffRing()
-            doorLed.turnOn()
-            print("Close the front door")
-            doorServo.closeLid()
+#            for r in wasteRings:
+#                r.turnOffRing()
+#            doorLed.turnOn()
+#            print("Close the front door")
+#            doorServo.closeLid()
             print("Front door is closed: taking picture")
             timer_pic.cancel()
             camera.takePhoto()
-            doorLed.turnOff()
+#            doorLed.turnOff()
             CURRENT_STATUS = "PHOTO_DONE"
 
 
@@ -420,6 +424,7 @@ if __name__ == "__main__":
 
             waste_type_gg = "TIMEOUT"
             waste_type_aws = "UNSORTED"
+            waste_type_lrec = "UNSORTED"
 
             if (greengrass):
                 async_result = pool.apply_async(gg.getLabels, (camera.currentPath(),))
@@ -431,45 +436,52 @@ if __name__ == "__main__":
             if (greengrass):
                 waste_type_gg = async_result.get()
                 print("GG: rubbish identified, it's: {}. Innit?".format(waste_type_gg))
-
+            
+            if (local_recognition):
+                async_result = pool.apply_async(LRec.getLabels, (camera.currentPath(),))
+                waste_type_lrec = async_result.get()
+                print("LRec: rubbish identified, it's: {}. Innit?".format(waste_type_lrec))
+                
             # waste_type = waste_type_aws
             if (waste_type_gg == "TIMEOUT" or not greengrass):
+                waste_type = waste_type_lrec
+                print("this is Local Recognition Algorithm")
                 # if(waste_type_aws is not None):
                 # waste_type = waste_type_aws
                 # print("this is AWS")
                 # else:
-                waste_type = "UNSORTED"
+#                waste_type = "UNSORTED"
             else:
                 waste_type = waste_type_gg
                 print("This is Greengrass")
 
             if (waste_type == "UNSORTED"):
-                unsortedRing.setWaste(333)
+#                unsortedRing.setWaste(333)
                 bin_json["levels"]["unsorted"] += 2
                 if (bin_json["levels"]["unsorted"] > 100):
                     bin_json["levels"]["unsorted"] = 100
 
             elif (waste_type == "PLASTIC"):
-                plasticRing.setWaste(333)
+#                plasticRing.setWaste(333)
                 bin_json["levels"]["plastic"] += 2
                 if (bin_json["levels"]["plastic"] > 100):
                     bin_json["levels"]["plastic"] = 100
 
             elif (waste_type == "PAPER"):
-                paperRing.setWaste(333)
+#                paperRing.setWaste(333)
                 bin_json["levels"]["paper"] += 2
                 if (bin_json["levels"]["paper"] > 100):
                     bin_json["levels"]["paper"] = 100
 
             elif (waste_type == "GLASS"):
-                glassRing.setWaste(333)
+#                glassRing.setWaste(333)
                 bin_json["levels"]["glass"] += 2
                 if (bin_json["levels"]["glass"] > 100):
                     bin_json["levels"]["glass"] = 100
 
             if (waste_type == "EMPTY"):
                 CURRENT_STATUS = "SET_FILL_LEVEL"
-                doorServo.openLid()
+#                doorServo.openLid()
             else:
                 CURRENT_STATUS = "MOTORS"
 
@@ -494,8 +506,8 @@ if __name__ == "__main__":
                 time.sleep(1.5)
                 print("Action done")
 
-            for r in wasteRings:
-                r.turnOffRing()
+#            for r in wasteRings:
+#                r.turnOffRing()
             CURRENT_STATUS = "SEND_FILL_LEVEL"
 
 
@@ -538,41 +550,41 @@ if __name__ == "__main__":
 
 
         elif (CURRENT_STATUS == "SET_FILL_LEVEL"):
-            ringLed.staticGreen()
-            matrixLed.greenArrow()
-            doorServo.openLid()
+#            ringLed.staticGreen()
+#            matrixLed.greenArrow()
+#            doorServo.openLid()
             print("this is the {} iteration".format(total_iteration))
-            for key in bin_json["levels"].keys():
-                if key == "unsorted":
-                    unsortedRing.setWaste(bin_json["levels"][key])
-                if key == "paper":
-                    plasticRing.setWaste(bin_json["levels"][key])
-                if key == "plastic":
-                    paperRing.setWaste(bin_json["levels"][key])
-                if key == "glass":
-                    glassRing.setWaste(bin_json["levels"][key])
+#            for key in bin_json["levels"].keys():
+#                if key == "unsorted":
+#                    unsortedRing.setWaste(bin_json["levels"][key])
+#                if key == "paper":
+#                    plasticRing.setWaste(bin_json["levels"][key])
+#                if key == "plastic":
+#                    paperRing.setWaste(bin_json["levels"][key])
+#                if key == "glass":
+#                    glassRing.setWaste(bin_json["levels"][key])
 
             CURRENT_STATUS = "IDLE"
             first_idle = True
 
 
         elif (CURRENT_STATUS == "FULL"):
-            if (first_full):
-                for r in wasteRings:
-                    r.turnOffRing()
-                doorServo.closeLid()
-                ringLed.staticRed()
-                matrixLed.redCross()
-                for f in full_bin:
-                    if f == "unsorted":
-                        unsortedRing.setWaste(100)
-                    if f == "paper":
-                        plasticRing.setWaste(100)
-                    if f == "plastic":
-                        paperRing.setWaste(100)
-                    if f == "glass":
-                        glassRing.setWaste(100)
-                client.publish("smartbin/message/bin0", "I'm full")
+#            if (first_full):
+#                for r in wasteRings:
+#                    r.turnOffRing()
+#                doorServo.closeLid()
+#                ringLed.staticRed()
+#                matrixLed.redCross()
+#                for f in full_bin:
+#                    if f == "unsorted":
+#                        unsortedRing.setWaste(100)
+#                    if f == "paper":
+#                        plasticRing.setWaste(100)
+#                    if f == "plastic":
+#                        paperRing.setWaste(100)
+#                    if f == "glass":
+#                        glassRing.setWaste(100)
+#                client.publish("smartbin/message/bin0", "I'm full")
                 first_full = False
 
         ##### IDLE #####
@@ -597,8 +609,8 @@ if __name__ == "__main__":
                 pass
 
     print("EOF!")
-    tof2.stop_ranging()
-    GPIO.output(c.SENSOR2, GPIO.LOW)
-    tof1.stop_ranging()
-    GPIO.output(c.SENSOR1, GPIO.LOW)
-    ringLed.staticRed()
+#    tof2.stop_ranging()
+#    GPIO.output(c.SENSOR2, GPIO.LOW)
+#    tof1.stop_ranging()
+#    GPIO.output(c.SENSOR1, GPIO.LOW)
+#    ringLed.staticRed()
