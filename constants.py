@@ -1,5 +1,5 @@
 BIN_NAME = "bin0"
-VERSION = 3.0
+VERSION = 3.1
 #MQTT
 HOST = '34.244.160.143'
 FILL_LEVEL_FAKE = "smartbin/fill_levels/fake"

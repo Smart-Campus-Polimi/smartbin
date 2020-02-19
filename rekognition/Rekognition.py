@@ -4,7 +4,7 @@ import time
 import labels as l
 import pprint as pp
 
-class Rekognition():
+class Rekognition:
 		def __init__(self,debug=False):
 			self.session = boto3.Session(profile_name='default')
 			self.rekognition = self.session.client('rekognition')
