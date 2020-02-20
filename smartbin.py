@@ -1,27 +1,27 @@
 #!/usr/bin/python3
 import argparse
-import RPi.GPIO as GPIO
-import sys
-import VL53L0X
-import time
-import threading
-import signal
-import paho.mqtt.client as mqtt
 import json
+import signal
+import sys
+import threading
+import time
+from multiprocessing.pool import ThreadPool
+
+import RPi.GPIO as GPIO
+import paho.mqtt.client as mqtt
 import yaml
 from munch import munchify
-from multiprocessing.pool import ThreadPool
 
 # my imports
 import DoorLed
-import RingLed
+import GreenGrass
 import MatrixLed
 import MyCamera
+import RingLed
+import RingWasteLed
 import SerialHandler
 import Servo
-import RingWasteLed
-import GreenGrass
-import constants as c
+import VL53L0X
 
 GPIO.setmode(GPIO.BCM)
 
@@ -275,10 +275,10 @@ if __name__ == "__main__":
             if not tof2.checkStatus("2d"):
                 errors.append("TOF2")
 
-            while not calibration_disk:
-                print("wait disk calibration")
-            while not calibration_blade:
-                print("wait blade calibration")
+            # while not calibration_disk:
+            #     print("wait disk calibration")
+            # while not calibration_blade:
+            #     print("wait blade calibration")
 
             # if no errors set current status = boot
             if len(errors) < 1:

@@ -5,6 +5,7 @@ import time
 import pygame
 import pygame.camera
 
+
 # WIDTH = 320
 # HEIGHT = 240
 # PICTURE_DIRECTORY = '~/Pictures/'

@@ -1,8 +1,10 @@
 #!/usr/bin/python3
-import boto3
-import time
-import labels
 import pprint as pp
+import time
+
+import boto3
+
+import labels
 
 
 class Rekognition:

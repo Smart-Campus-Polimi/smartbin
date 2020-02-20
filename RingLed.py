@@ -2,63 +2,63 @@ import serial
 
 
 class RingLed:
-	def __init__(self, ser):
-		self.ser = ser
-	
-	def turnOff(self):
-		try:
-			self.ser.write(b'#R0!')
-			print("RING: turn off ring")
-		except serial.SerialException as e:
-			print("RING ERROR: turn off ring {}".format(e))
+    def __init__(self, ser):
+        self.ser = ser
 
-	def staticGreen(self):
-		try: 
-			self.ser.write(b'#R1!')
-			print("RING: led green")
-		except serial.SerialException as e:
-			print("RING ERROR: led green {}".format(e))
+    def turnOff(self):
+        try:
+            self.ser.write(b'#R0!')
+            print("RING: turn off ring")
+        except serial.SerialException as e:
+            print("RING ERROR: turn off ring {}".format(e))
 
-	def staticRed(self):
-		try:
-			self.ser.write(b'#R2!')
-			print("RING: led red")
-		except serial.SerialException as e:
-			print("RING ERROR: led red {}".format(e))
+    def staticGreen(self):
+        try:
+            self.ser.write(b'#R1!')
+            print("RING: led green")
+        except serial.SerialException as e:
+            print("RING ERROR: led green {}".format(e))
 
-	def breatheGreen(self):
-		try:
-			self.ser.write(b'#R3!')
-			print("RING: led breathe green")
-		except serial.SerialException as e:
-			print("RING ERROR: led breathe green {}".format(e))
+    def staticRed(self):
+        try:
+            self.ser.write(b'#R2!')
+            print("RING: led red")
+        except serial.SerialException as e:
+            print("RING ERROR: led red {}".format(e))
 
-	def breatheRed(self):
-		try:
-			self.ser.write(b'#R4!')
-			print("RING: led breathe red")
-		except serial.SerialException as e:
-			print("RING ERROR: led breathe red {}".format(e))
+    def breatheGreen(self):
+        try:
+            self.ser.write(b'#R3!')
+            print("RING: led breathe green")
+        except serial.SerialException as e:
+            print("RING ERROR: led breathe green {}".format(e))
 
-	def wipeRing(self):
-		try:
-			self.ser.write(b'#R7!')
-			print("RING: wipe")
-		except serial.SerialException as e:
-			print("RING ERROR: wipe {}".format(e))
+    def breatheRed(self):
+        try:
+            self.ser.write(b'#R4!')
+            print("RING: led breathe red")
+        except serial.SerialException as e:
+            print("RING ERROR: led breathe red {}".format(e))
 
-	def checkStatus(self):
-		# TODO
-		pass
+    def wipeRing(self):
+        try:
+            self.ser.write(b'#R7!')
+            print("RING: wipe")
+        except serial.SerialException as e:
+            print("RING ERROR: wipe {}".format(e))
 
-	def waitingForToF(self):
-		# TODO
-		pass
+    def checkStatus(self):
+        # TODO
+        pass
 
-	def ToFRunning(self):
-		# TODO
-		pass
+    def waitingForToF(self):
+        # TODO
+        pass
 
-	def ToFNOTRunning(self):
-		# TODO
-		pass
+    def ToFRunning(self):
+        # TODO
+        pass
+
+    def ToFNOTRunning(self):
+        # TODO
+        pass

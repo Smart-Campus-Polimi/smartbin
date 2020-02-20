@@ -1,9 +1,10 @@
-from scp import SCPClient
-import paramiko
-import paho.mqtt.client as mqtt
-import time
 import json
 import threading
+import time
+
+import paho.mqtt.client as mqtt
+import paramiko
+from scp import SCPClient
 
 TIMEOUT_GG_RESPONSE = 1.5
 TIMEOUT_CHEAT = 30

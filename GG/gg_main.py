@@ -5,5 +5,5 @@ filename = "/Users/drosdesd/Dropbox/edo_repo/smart_campus/foto/newspaper/PAPER_2
 gg = GreenGrass.GreenGrass()
 
 while True:
-	key = raw_input('?')
-	gg.getLabels(filename)
+    key = raw_input('?')
+    gg.getLabels(filename)

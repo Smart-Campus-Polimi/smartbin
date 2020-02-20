@@ -11,5 +11,5 @@ paper = ["Paper", "Poster", "Diagram", "White Board", "Brochure", "Menu", "Origa
 glass = ["Glass", "Beer", "Lager", "Beer Bottle", "Pop Bottle", "Wine Glass", "Drink", "Wine", "Green", "Liquor", "Jar",
          "Beer Glass", "Goblet", "Beverage", "Alcohol"]
 
-drop = ['Clothing', 'Helmet', 'Apparel', 'Light Fixture','Handrail','Banister', 'Lampshade', 'Lamp', 'Lighting',
+drop = ['Clothing', 'Helmet', 'Apparel', 'Light Fixture', 'Handrail', 'Banister', 'Lampshade', 'Lamp', 'Lighting',
         'Staircase', 'Architecture', 'Building', 'Sink Faucet', 'Mirror', 'Arch', 'Arched', 'Hoop']
