@@ -1,0 +1,32 @@
+# MOTORS
+
+## DISK
+disk:
+  init: +950
+  offset: -45
+  correct: +1390
+  rubbish:
+    unsorted: -180
+    plastic: +60
+    paper: +190
+    glass: -90
+
+## BLADE
+blade:
+  init: +1050
+  offset: -183
+  correct: +1370
+  rubbish:
+    unsorted: +70
+    plastic: -210
+    paper: +210
+    glass: -60
+
+## DOOR
+door:
+  open: 1500
+  closed: 900
+
+## Limits
+min: 700
+max: 2500

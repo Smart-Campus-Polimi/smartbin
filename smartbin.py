@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import argparse
 import RPi.GPIO as GPIO
 import sys
 import VL53L0X
@@ -7,6 +8,8 @@ import threading
 import signal
 import paho.mqtt.client as mqtt
 import json
+import yaml
+from munch import munchify
 from multiprocessing.pool import ThreadPool
 
 # my imports
@@ -39,7 +42,8 @@ deadToF1 = False
 deadToF2 = False
 total_iteration = 0
 
-bin_json = {"bin_id": c.BIN_NAME,
+# TODO bin name as param
+bin_json = {"bin_id": "bin0",
             "levels": {"unsorted": 13,
                        "plastic": 3,
                        "paper": 10,
@@ -60,15 +64,23 @@ def signal_handler(signal, frame):
     sys.exit(0)
 
 
+def arg_parse():
+    parser = argparse.ArgumentParser(description='Smart bin raspberry pi.')
+    # parser.add_argument('-d', action='store_true')
+    parser.add_argument('-e', '--environment', help='Specify the environment, default EC2', type=str, default="EC2")
+
+    return parser.parse_args()
+
+
 def on_message(client, userdata, message):
     print("receive message")
     response = str(message.payload.decode("utf-8"))
     print(response)
-    if message.topic == c.FILL_LEVEL_FAKE:
+    if message.topic == CONFIG.mqtt.fill_level_fake:
         try:
             resp_parse = json.loads(response)
         except ValueError as e:
-            print("malformed json")
+            print("malformed json", e)
 
         for key, val in resp_parse["levels"].items():
             bin_json["levels"][key] = val
@@ -80,7 +92,7 @@ def on_message(client, userdata, message):
                 or CURRENT_STATUS == "CHECK_TOF":
             CURRENT_STATUS = "SEND_FILL_LEVEL"
 
-    if message.topic == c.FILL_LEVEL_TOPIC:
+    if message.topic == CONFIG.mqtt.fill_level_topic:
         if message.retain:
             for key, val in resp_parse["levels"].items():
                 bin_json["levels"][key] = val
@@ -88,7 +100,7 @@ def on_message(client, userdata, message):
 
 def on_connect(client, userdata, flags, rc):
     print("Connected flags" + str(flags) + "result_code" + str(rc) + "client1_id")
-    client.subscribe(c.FILL_LEVEL_FAKE)
+    client.subscribe(CONFIG.mqtt.fill_level_fake)
 
 
 ####### SETUP TOF #######
@@ -96,23 +108,23 @@ def setupToF(all_tof=True):
     GPIO.setwarnings(False)
 
     # Setup GPIO for shutdown pins on each VL53L0X
-    GPIO.setup(c.SENSOR1, GPIO.OUT)
-    GPIO.setup(c.SENSOR2, GPIO.OUT)
+    GPIO.setup(CONFIG.gpio.tof1, GPIO.OUT)
+    GPIO.setup(CONFIG.gpio.tof2, GPIO.OUT)
 
     # Set all shutdown pins low to turn off each VL53L0X
-    GPIO.output(c.SENSOR1, GPIO.LOW)
-    GPIO.output(c.SENSOR2, GPIO.LOW)
+    GPIO.output(CONFIG.gpio.tof1, GPIO.LOW)
+    GPIO.output(CONFIG.gpio.tof2, GPIO.LOW)
 
     time.sleep(0.50)
 
     tof = VL53L0X.VL53L0X(address=0x2B)
     tof1 = VL53L0X.VL53L0X(address=0x2D)
 
-    GPIO.output(c.SENSOR1, GPIO.HIGH)
+    GPIO.output(CONFIG.gpio.tof1, GPIO.HIGH)
     time.sleep(0.50)
     tof.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
 
-    GPIO.output(c.SENSOR2, GPIO.HIGH)
+    GPIO.output(CONFIG.gpio.tof2, GPIO.HIGH)
     time.sleep(0.50)
     tof1.start_ranging(VL53L0X.VL53L0X_BETTER_ACCURACY_MODE)
 
@@ -124,7 +136,7 @@ def door_callback(channel):
     global CURRENT_STATUS, OLD_STATUS
     oldIsOpen = isOpen
 
-    isOpen = GPIO.input(c.DOOR_SENSOR)
+    isOpen = GPIO.input(CONFIG.gpio.door.magnet)
     if isOpen and not oldIsOpen:
         if (
                 CURRENT_STATUS == "PHOTO" or CURRENT_STATUS == "MOTORS" or CURRENT_STATUS == "PHOTO_DONE" or CURRENT_STATUS == "REKOGNITION" or CURRENT_STATUS == "FULL" or CURRENT_STATUS == "SEND_FILL_LEVEL" or CURRENT_STATUS == "CHECK_FULL"):
@@ -164,20 +176,28 @@ def door_forgotten_open():
 def read_bin_level(tof):
     fill_lev = tof.get_distance()
     if fill_lev > 0:
-        level = int((fill_lev / c.BIN_HEIGHT) * 100.0)
+        level = int((fill_lev / CONFIG.bin_height) * 100.0)
         if level > 100:
             level = 100
         return level
 
 
-##### DOOR SETUP #####
-GPIO.setup(c.DOOR_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.add_event_detect(c.DOOR_SENSOR, GPIO.BOTH, callback=door_callback)
-
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
-    print("STARTING SMARTBIN V{}...".format(c.VERSION))
 
+    args = arg_parse()
+    environment = args.environment
+    with open('configuration.yaml', 'r') as conf_yaml:
+        CONFIG = munchify(yaml.load(conf_yaml, yaml.SafeLoader))
+
+    print(CONFIG)
+    server_config = getattr(CONFIG, environment)
+
+    # #### DOOR SETUP #### #
+    GPIO.setup(CONFIG.gpio.door.magnet, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.add_event_detect(CONFIG.gpio.door.magnet, GPIO.BOTH, callback=door_callback)
+
+    print("STARTING SMARTBIN V{}...".format(CONFIG.version))
     CURRENT_STATUS = "INIT"
     setup = True
     while setup:
@@ -203,8 +223,8 @@ if __name__ == "__main__":
             paperRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'C')
             glassRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'G')
 
-            blade = Servo.BladeServo()
-            disk = Servo.DiskServo()
+            blade = Servo.BladeServo(CONFIG.gpio.blade)
+            disk = Servo.DiskServo(CONFIG.gpio.disk)
 
             calibration_blade = blade.calibration()
             calibration_disk = disk.calibration()
@@ -219,24 +239,23 @@ if __name__ == "__main__":
             print("\n")
             print("MQTT tentative connection...", end=' ')
             client = mqtt.Client()
-            client.connect(c.HOST)
             client.on_message = on_message
             client.on_connect = on_connect
-
+            client.connect(server_config.host)
             client.loop_start()
             print("DONE")
 
             # reko = Rekognition.Rekognition(debug=True)
 
-            print("MQTT tentative connection...", end=' ')
-            gg = GreenGrass.GreenGrass()
+            print("GG connection...", end=' ')
+            gg = GreenGrass.GreenGrass(CONFIG, environment)
             print("DONE")
 
             matrixLed.greenArrow()
 
-            camera = MyCamera.MyCamera()
+            camera = MyCamera.MyCamera(CONFIG.picture)
 
-            doorServo = Servo.DoorServo()
+            doorServo = Servo.DoorServo(CONFIG.gpio.door)
 
             pool = ThreadPool(processes=1)
 
@@ -270,7 +289,7 @@ if __name__ == "__main__":
         elif CURRENT_STATUS == "BOOT":
             print("\n### Current status: {}".format(CURRENT_STATUS))
 
-            isOpen = GPIO.input(c.DOOR_SENSOR)
+            isOpen = GPIO.input(CONFIG.gpio.door.magnet)
             startUp = True
 
             if isOpen:
@@ -325,7 +344,7 @@ if __name__ == "__main__":
         if CURRENT_STATUS == "DOOR_OPEN":
             # global timer_door
             doorLed.turnOn()
-            timer_door = threading.Timer(c.TIMER_DOOR, door_forgotten_open)
+            timer_door = threading.Timer(CONFIG.timer.door, door_forgotten_open)
             timer_door.start()
             CURRENT_STATUS = "CHECK_TOF"
 
@@ -351,7 +370,7 @@ if __name__ == "__main__":
                 CURRENT_STATUS = "WASTE_IN"
 
             oldWasteIn = wasteIn
-            if distance1 < c.THRESHOLD_TOF or distance2 < c.THRESHOLD_TOF:
+            if distance1 < CONFIG.threshold_tof or distance2 < CONFIG.threshold_tof:
                 CURRENT_STATUS = "WASTE_IN"
 
 
@@ -360,7 +379,7 @@ if __name__ == "__main__":
             print("Rubbish inside")
             camera.setCameraStatus(False)
             camera.erasePath()
-            timer_pic = threading.Timer(c.TIMER_PHOTO, photo_ready, [camera])
+            timer_pic = threading.Timer(CONFIG.timer.photo, photo_ready, [camera])
             timer_pic.start()
             CURRENT_STATUS = "WAIT_CLOSE"
 
@@ -493,7 +512,7 @@ if __name__ == "__main__":
             CURRENT_STATUS = "SEND_FILL_LEVEL"
 
         elif CURRENT_STATUS == "SEND_FILL_LEVEL":
-            client.publish(c.FILL_LEVEL_TOPIC, json.dumps(bin_json), retain=True, qos=1)
+            client.publish(CONFIG.mqtt["fill_level_topic"], json.dumps(bin_json), retain=True, qos=1)
             CURRENT_STATUS = "CHECK_FULL"
 
         elif CURRENT_STATUS == "CHECK_FULL":
@@ -549,9 +568,9 @@ if __name__ == "__main__":
         elif CURRENT_STATUS == "IDLE":
             if first_idle:
                 # print("timer")
-                # timer_idle.append(threading.Timer(c.TIMER_IDLE, activate_wipe))
+                # timer_idle.append(threading.Timer(CONFIG.timer.idle, activate_wipe))
                 first_idle = False
-                if GPIO.input(c.DOOR_SENSOR):
+                if GPIO.input(CONFIG.gpio.door.magnet):
                     CURRENT_STATUS = "DOOR_OPEN"
             if deadToF1 and deadToF2:
                 # reset tof
@@ -567,7 +586,7 @@ if __name__ == "__main__":
 
     print("EOF!")
     tof2.stop_ranging()
-    GPIO.output(c.SENSOR2, GPIO.LOW)
+    GPIO.output(CONFIG.gpio.tof2, GPIO.LOW)
     tof1.stop_ranging()
-    GPIO.output(c.SENSOR1, GPIO.LOW)
+    GPIO.output(CONFIG.gpio.tof1, GPIO.LOW)
     ringLed.staticRed()

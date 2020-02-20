@@ -5,14 +5,17 @@ import time
 import pygame
 import pygame.camera
 
-WIDTH = 320
-HEIGHT = 240
-PICTURE_DIRECTORY = '~/Pictures/'
+# WIDTH = 320
+# HEIGHT = 240
+# PICTURE_DIRECTORY = '~/Pictures/'
 
 
 class MyCamera:
-    def __init__(self):
+    def __init__(self, pic):
         pygame.camera.init()
+        self.folder = pic.folder
+        self.width = pic.width
+        self.height = pic.height
         self.photo_done = False
         self.file_name = None
         try:
@@ -23,7 +26,7 @@ class MyCamera:
 
         print("CAMERA: camera device {}".format(self.dev))
         if self.dev is not None:
-            self.my_cam = pygame.camera.Camera(self.dev, (WIDTH, HEIGHT))
+            self.my_cam = pygame.camera.Camera(self.dev, (self.width, self.height))
 
     def checkStatus(self):
         if self.dev is None:
@@ -36,7 +39,7 @@ class MyCamera:
     def takePhoto(self):
         start_time = time.time()
         self.file_name = datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
-        self.file_name = os.path.expanduser(PICTURE_DIRECTORY) + self.file_name + ".jpg"
+        self.file_name = os.path.expanduser(self.folder) + self.file_name + ".jpg"
 
         print(self.my_cam)
 

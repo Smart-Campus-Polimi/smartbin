@@ -1,33 +1,45 @@
-import paramiko
 from scp import SCPClient
+import paramiko
 import paho.mqtt.client as mqtt
 import time
 import json
 import threading
-import constants as c
 
-HOST = '34.244.160.143'
-HOSTV2 = '63.33.41.143'
-PORT = '22'
-USER = 'ubuntu'
-PASS = 'vodafone5G'
-KEY_PATH = '/home/pi/certs/'
-KEY = KEY_PATH + 'vf-it-5g.pem'
 TIMEOUT_GG_RESPONSE = 1.5
 TIMEOUT_CHEAT = 30
-
-DESTINATION_FOLDER = '/home/ubuntu/vm1-node-service/raw_field_data'
-# DESTINATION_FOLDER2 = '/home/ubuntu/raw_field_data'
-
-ORIGIN_FOLDER = '/home/pi/pictures/'
-
-TOPIC_TO_SUBSCRIBE_TO = 'response/prediction/trash'
-TOPIC_FAKE = 'response/prediction/fake'
 
 status = "NONE"
 waste = "NONE"
 next_one = None
 timer_cheat = None
+
+
+def _timeout_cheat():
+    global next_one
+    next_one = None
+    print("GREENGRASS: next_one expired")
+
+
+def _createSSHClient(server, port, user, key):
+    cl = paramiko.SSHClient()
+    cl.load_system_host_keys()
+    cl.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    cl.connect(server, port, user, key_filename=key)
+    return cl
+
+
+def _timeout_gg_resp():
+    global status, waste, next_one, timer_cheat
+    if status == "WAIT_RESP":
+        print("GG: timeout")
+        if next_one is not None:
+            waste = next_one
+            next_one = None
+            timer_cheat.cancel()
+        else:
+            waste = "TIMEOUT"
+
+        status = "SEND_RESP"
 
 
 def _parse_msg(resp):
@@ -49,74 +61,21 @@ def _parse_msg(resp):
     return _waste
 
 
-def on_message_gg(client, userdata, message):
-    global status, waste, next_one, timer_cheat
-    print("GREENGRASS: message received")
-    if status == "WAIT_RESP":
-        if message.topic == TOPIC_TO_SUBSCRIBE_TO:
-            if next_one is None:
-                waste = _parse_msg(str(message.payload.decode("utf-8")))
-            else:
-                waste = next_one
-                next_one = None
-                timer_cheat.cancel()
-
-        if message.topic == TOPIC_FAKE:
-            waste = _parse_msg(str(message.payload.decode("utf-8")))
-
-        status = "SEND_RESP"
-
-    else:
-        if message.topic == TOPIC_FAKE:
-            next_one = _parse_msg(str(message.payload.decode("utf-8")))
-            print("GREENGRASS: next waste is {}".format(next_one))
-            timer_cheat = threading.Timer(TIMEOUT_CHEAT, _timeout_cheat)
-            timer_cheat.start()
-
-
-def on_connect(client, userdata, flags, rc):
-    print("GREENGRASS: Connected with result code " + str(rc))
-    client.subscribe(TOPIC_TO_SUBSCRIBE_TO)
-    client.subscribe(TOPIC_FAKE)
-
-
-def _timeout_gg_resp():
-    global status, waste, next_one, timer_cheat
-    if status == "WAIT_RESP":
-        print("GG: timeout")
-        if next_one is not None:
-            waste = next_one
-            next_one = None
-            timer_cheat.cancel()
-        else:
-            waste = "TIMEOUT"
-
-        status = "SEND_RESP"
-
-
-def _timeout_cheat():
-    global next_one
-    next_one = None
-    print("GREENGRASS: next_one expired")
-
-
-def _createSSHClient(server, port, user, key):
-    cl = paramiko.SSHClient()
-    cl.load_system_host_keys()
-    cl.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    cl.connect(server, port, user, key_filename=key)
-    return cl
-
-
 class GreenGrass:
-    def __init__(self):
-        self.ssh = _createSSHClient(c.HOST, PORT, USER, KEY)
+    def __init__(self, config, environment):
+        self.mqtt_conf = config.mqtt
+        self.server = getattr(config, environment)
+        self.server.key = self.server.key_path + self.server.key
+        self.ssh = _createSSHClient(self.server.host, self.server.port, self.server.user, self.server.key)
         self.scp = SCPClient(self.ssh.get_transport())
 
         self.client = mqtt.Client()
-        self.client.on_connect = on_connect
-        self.client.on_message = on_message_gg
-        self.client.connect(c.HOST)
+        self.client.on_connect = self.on_connect
+        self.client.on_message = self.on_message_gg
+        try:
+            self.client.connect(self.server.host)
+        except ValueError as e:
+            print("GREENGRASS:", e)
 
         self.client.loop_start()
         print("GREENGRASS: initialization done")
@@ -126,7 +85,7 @@ class GreenGrass:
         time_s = time.time()
         global status
         with self.scp:
-            self.scp.put(file_name, DESTINATION_FOLDER)
+            self.scp.put(file_name, self.server.destination_folder)
 
         status = "WAIT_RESP"
         print("GREENGRASS: File Sent")
@@ -143,3 +102,32 @@ class GreenGrass:
         print("GREENGRASS: response {}".format(waste))
         print("GREENGRASS: total time {0:.2f} sec".format(time.time() - time_s))
         return waste
+
+    def on_message_gg(self, client, userdata, message):
+        global status, waste, next_one, timer_cheat
+        print("GREENGRASS: message received")
+        if status == "WAIT_RESP":
+            if message.topic == self.mqtt_conf.topic_to_subscribe_to:
+                if next_one is None:
+                    waste = _parse_msg(str(message.payload.decode("utf-8")))
+                else:
+                    waste = next_one
+                    next_one = None
+                    timer_cheat.cancel()
+
+            if message.topic == self.mqtt_conf.topic_fake:
+                waste = _parse_msg(str(message.payload.decode("utf-8")))
+
+            status = "SEND_RESP"
+
+        else:
+            if message.topic == self.mqtt_conf.topic_fake:
+                next_one = _parse_msg(str(message.payload.decode("utf-8")))
+                print("GREENGRASS: next waste is {}".format(next_one))
+                timer_cheat = threading.Timer(TIMEOUT_CHEAT, _timeout_cheat)
+                timer_cheat.start()
+
+    def on_connect(self, client, userdata, flags, rc):
+        print("GREENGRASS: Connected with result code " + str(rc))
+        client.subscribe(self.mqtt_conf.topic_to_subscribe_to)
+        client.subscribe(self.mqtt_conf.topic_fake)

@@ -1,49 +1,56 @@
 import RPi.GPIO as GPIO
 import time
 import pigpio
-import motors_constants as m
+import yaml
+from munch import munchify
+
+# import motors_constants as m
 
 GPIO.setmode(GPIO.BCM)
+with open('motors.yaml', 'r') as conf_yaml:
+    CONFIG = munchify(yaml.load(conf_yaml, yaml.SafeLoader))
 
 
+# TODO merge blade and disk in a single class
 class BladeServo:
-    def __init__(self):
+    def __init__(self, config):
+        self.pin_config = config
         self.servo = pigpio.pi()
-        GPIO.setup(m.PIN_MAGNET_BLADE, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        self.servo.set_servo_pulsewidth(m.BLADE_MOTOR, m.BLADE_INIT)
-        self.zero_blade = m.BLADE_INIT
+        GPIO.setup(self.pin_config.magnet, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        self.servo.set_servo_pulsewidth(self.pin_config.motor, CONFIG.blade.init)
+        self.zero_blade = CONFIG.blade.init
         print("BLADE: initialization Done")
 
     def calibration(self):
-        for pos in range(m.BLADE_INIT, m.MAX_MOTOR):
-            if GPIO.input(m.PIN_MAGNET_BLADE):
-                self.servo.set_servo_pulsewidth(m.BLADE_MOTOR, pos)
+        for pos in range(CONFIG.blade.init, CONFIG.max):
+            if GPIO.input(self.pin_config.magnet):
+                self.servo.set_servo_pulsewidth(self.pin_config.motor, pos)
                 time.sleep(.02)
             else:
-                self.zero_blade = pos + m.OFFSET_PALETTA
+                self.zero_blade = pos + CONFIG.blade.offset
                 break
 
-        if self.zero_blade == m.BLADE_INIT:
+        if self.zero_blade == CONFIG.blade.init:
             print("BLADE: calibration failed")
-            self.zero_blade = m.CORRECT_BLADE
+            self.zero_blade = CONFIG.blade.correct
 
-        self.servo.set_servo_pulsewidth(m.BLADE_MOTOR, self.zero_blade)
+        self.servo.set_servo_pulsewidth(self.pin_config.motor, self.zero_blade)
         print("BLADE: Zero pos blade is : {}".format(self.zero_blade))
 
         return True
 
     def move_blade(self, waste):
-        self.servo.set_servo_pulsewidth(m.BLADE_MOTOR, self._parse_blade(waste))
+        self.servo.set_servo_pulsewidth(self.pin_config.motor, self._parse_blade(waste))
 
     def _parse_blade(self, waste):
         if waste == "UNSORTED":
-            pos = self.zero_blade + m.BLADE_UNSORTED
+            pos = self.zero_blade + CONFIG.blade.rubbish.unsorted
         elif waste == "PLASTIC":
-            pos = self.zero_blade + m.BLADE_PLASTIC
+            pos = self.zero_blade + CONFIG.blade.rubbish.plastic
         elif waste == "PAPER":
-            pos = self.zero_blade + m.BLADE_PAPER
+            pos = self.zero_blade + CONFIG.blade.rubbish.paper
         elif waste == "GLASS":
-            pos = self.zero_blade + m.BLADE_GLASS
+            pos = self.zero_blade + CONFIG.blade.rubbish.glass
         elif waste == "HOME":
             pos = self.zero_blade
         else:
@@ -54,46 +61,47 @@ class BladeServo:
 
 
 class DiskServo:
-    def __init__(self):
+    def __init__(self, config):
+        self.pin_config = config
         self.servo = pigpio.pi()
-        GPIO.setup(m.PIN_MAGNET_DISK, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        self.servo.set_servo_pulsewidth(m.DISK_MOTOR, m.DISK_INIT)
-        self.zero_disk = m.DISK_INIT
+        GPIO.setup(self.pin_config.magnet, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        self.servo.set_servo_pulsewidth(self.pin_config.motor, CONFIG.disk.init)
+        self.zero_disk = CONFIG.disk.init
         print("DISK: initialization Done")
 
     def calibration(self):
-        for pos in range(m.DISK_INIT, m.MAX_MOTOR):
-            if GPIO.input(m.PIN_MAGNET_DISK):
-                self.servo.set_servo_pulsewidth(m.DISK_MOTOR, pos)
+        for pos in range(CONFIG.disk.init, CONFIG.max):
+            if GPIO.input(self.pin_config.magnet):
+                self.servo.set_servo_pulsewidth(self.pin_config.motor, pos)
                 time.sleep(.02)
             else:
-                self.zero_disk = pos + m.OFFSET_DISK
+                self.zero_disk = pos + CONFIG.disk.offset
                 break
 
-        if self.zero_disk == m.DISK_INIT:
+        if self.zero_disk == CONFIG.disk.init:
             print("DISK: calibration failed")
-            self.zero_disk = m.CORRECT_DISK
+            self.zero_disk = CONFIG.disk.correct
 
-        self.servo.set_servo_pulsewidth(m.DISK_MOTOR, self.zero_disk)
+        self.servo.set_servo_pulsewidth(self.pin_config.motor, self.zero_disk)
         print("DISK: Zero pos disk is : {}".format(self.zero_disk))
         return True
 
     def moveDisk(self, waste):
-        self.servo.set_servo_pulsewidth(m.DISK_MOTOR, self._parseDisk(waste))
+        self.servo.set_servo_pulsewidth(self.pin_config.motor, self._parseDisk(waste))
 
     def _parseDisk(self, waste):
         if waste == "UNSORTED":
-            pos = self.zero_disk + m.DISK_UNSORTED
+            pos = self.zero_disk + CONFIG.disk.rubbish.unsorted
         elif waste == "PLASTIC":
-            pos = self.zero_disk + m.DISK_PLASTIC
+            pos = self.zero_disk + CONFIG.disk.rubbish.unsorted
         elif waste == "PAPER":
-            pos = self.zero_disk + m.DISK_PAPER
+            pos = self.zero_disk + CONFIG.disk.rubbish.unsorted
         elif waste == "GLASS":
-            pos = self.zero_disk + m.DISK_GLASS
+            pos = self.zero_disk + CONFIG.disk.rubbish.unsorted
         elif waste == "HOME":
             pos = self.zero_disk
         else:
-            pos = m.DISK_INIT
+            pos = CONFIG.disk.init
 
         print("DISK: {}".format(pos))
         return pos
@@ -105,10 +113,10 @@ def stopServo():
 
 
 class DoorServo:
-    def __init__(self):
+    def __init__(self, config):
         self.servo = pigpio.pi()
-
-        self.servo.set_servo_pulsewidth(m.DOOR_MOTOR, m.DOOR_OPEN)
+        self.pin_config = config
+        self.servo.set_servo_pulsewidth(self.pin_config.motor, CONFIG.door.open)
         print("SERVO: initialization Done")
 
         time.sleep(.5)
@@ -121,8 +129,8 @@ class DoorServo:
 
     def openLid(self):
         print("SERVO: open the door")
-        self.servo.set_servo_pulsewidth(m.DOOR_MOTOR, m.DOOR_OPEN)
+        self.servo.set_servo_pulsewidth(self.pin_config.motor, CONFIG.door.open)
 
     def closeLid(self):
         print("SERVO: close the door")
-        self.servo.set_servo_pulsewidth(m.DOOR_MOTOR, m.DOOR_CLOSED)
+        self.servo.set_servo_pulsewidth(self.pin_config.motor, CONFIG.door.closed)
