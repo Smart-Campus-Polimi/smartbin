@@ -1,4 +1,7 @@
+import logging
 import serial
+
+logger = logging.getLogger("MATRIX")
 
 
 class MatrixLed:
@@ -8,33 +11,34 @@ class MatrixLed:
     def turnOff(self):
         try:
             self.ser.write(b'#M0!')
-            print("MATRIX: turn off matrix")
+            logger.debug("Turn off")
         except serial.SerialException as e:
-            print("MATRIX: turn off matrix {}".format(e))
+            logger.error("Turn off %s", e)
 
     def greenArrow(self):
         try:
             self.ser.write(b'#M0!')
             self.ser.write(b'#M1!')
-            print("MATRIX: green arrow")
+            logger.debug("Green arrow")
         except serial.SerialException as e:
-            print("MATRIX ERROR: green arrow {}".format(e))
+            logger.error("Green arrow %s", e)
 
     def redCross(self):
         try:
             self.ser.write(b'#M0!')
             self.ser.write(b'#M2!')
-            print("MATRIX: red cross")
+            logger.warning("Red cross")
         except serial.SerialException as e:
-            print("MATRIX ERROR: red cross {}".format(e))
+            logger.error("Red cross %s", e)
 
     def arrowAnimation(self):
         try:
             self.ser.write(b'#M0!')
             self.ser.write(b'#M3!')
-            print("MATRIX: arrow animation")
+            logger.debug("Arrow animation")
         except serial.SerialException as e:
-            print("MATRIX ERROR: arrow animation {}".format(e))
+            logger.debug("Arrow animation %s", e)
 
     def checkStatus(self):
+        logger.debug("Checking Matrix...")
         pass

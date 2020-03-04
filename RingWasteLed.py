@@ -1,4 +1,8 @@
+import logging
 import serial
+
+
+logger = logging.getLogger("WASTE")
 
 
 class RingWasteLed:
@@ -10,16 +14,17 @@ class RingWasteLed:
         msg = '#' + self.waste_type + str(value) + '!'
         try:
             self.ser.write(str.encode(msg))
-            print("WASTE: set {} to {}%".format(self.waste_type, value))
+            logger.debug("Set %s to %d%%", self.waste_type, value)
         except serial.SerialException as e:
-            print("WASTE ERROR: set to level {}".format(e))
+            logger.error("Set to level %s", e)
 
     def turnOffRing(self):
         msg = '#' + self.waste_type + '0!'
         try:
             self.ser.write(str.encode(msg))
         except serial.SerialException as e:
-            print("WASTE ERROR: set to level {}".format(e))
+            logger.error("Off ring %s", e)
 
     def checkStatus(self):
+        logger.debug("Checking Rubbish Ring...")
         pass

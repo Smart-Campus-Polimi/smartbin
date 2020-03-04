@@ -1,17 +1,17 @@
 #!/usr/bin/python3
-import pprint as pp
+import boto3
+import logging
 import time
 
-import boto3
-
 import labels
+
+logger = logging.getLogger("REKO")
 
 
 class Rekognition:
     def __init__(self, debug=False):
         self.session = boto3.Session(profile_name='default')
         self.rekognition = self.session.client('rekognition')
-        self.debug = debug
         self.request_time = 0
         self.labeling_time = 0
 
@@ -44,9 +44,8 @@ class Rekognition:
         if count < 2:
             result["EMPTY"] = 100
 
-        if self.debug:
-            print(result)
-            print("Found {} labels".format(count))
+        logger.debug("%s", result)
+        logger.debug("Found %s labels", count)
 
         self.labeling_time = time.time() - self.labeling_time
         return max(zip(result.values(), result.keys()))[1]
@@ -62,14 +61,11 @@ class Rekognition:
 
             self.request_time = time.time() - self.request_time
 
-        if self.debug:
-            pp.pprint(rekognition_response)
+        logging.debug("%s", rekognition_response)
 
         return rekognition_response
 
-    def timeoutRecap(self, photoT):
-        print("\n")
-        print("-" * 30)
-        print("REKO: Taking a picture: {0:.4f} s".format(photoT))
-        print("REKO: Request to rekognition: {0:.4f} s".format(self.request_time))
-        print("REKO: Parsing response: {0:.4f} s".format(self.labeling_time))
+    def timeoutRecap(self, photo_time):
+        logger.warning("Taking a picture: {0:.4f} s".format(photo_time))
+        logger.warning("Request to rekognition: {0:.4f} s".format(self.request_time))
+        logger.warning("Parsing response: {0:.4f} s".format(self.labeling_time))

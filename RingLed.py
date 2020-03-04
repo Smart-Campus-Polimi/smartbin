@@ -1,4 +1,8 @@
+import logging
 import serial
+
+
+logger = logging.getLogger("RING")
 
 
 class RingLed:
@@ -8,47 +12,47 @@ class RingLed:
     def turnOff(self):
         try:
             self.ser.write(b'#R0!')
-            print("RING: turn off ring")
+            logger.debug("Turn off")
         except serial.SerialException as e:
-            print("RING ERROR: turn off ring {}".format(e))
+            logger.error("Turn off %s", e)
 
     def staticGreen(self):
         try:
             self.ser.write(b'#R1!')
-            print("RING: led green")
+            logger.debug("Green")
         except serial.SerialException as e:
-            print("RING ERROR: led green {}".format(e))
+            logger.error("Green %s", e)
 
     def staticRed(self):
         try:
             self.ser.write(b'#R2!')
-            print("RING: led red")
+            logger.warning("Red")
         except serial.SerialException as e:
-            print("RING ERROR: led red {}".format(e))
+            logger.error("Red %s", e)
 
     def breatheGreen(self):
         try:
             self.ser.write(b'#R3!')
-            print("RING: led breathe green")
+            logger.debug("Breathe green")
         except serial.SerialException as e:
-            print("RING ERROR: led breathe green {}".format(e))
+            logger.error("Breathe green %s", e)
 
     def breatheRed(self):
         try:
             self.ser.write(b'#R4!')
-            print("RING: led breathe red")
+            logger.warning("Breathe red")
         except serial.SerialException as e:
-            print("RING ERROR: led breathe red {}".format(e))
+            logger.debug("Breathe red %s", e)
 
     def wipeRing(self):
         try:
             self.ser.write(b'#R7!')
-            print("RING: wipe")
+            logger.debug("Wipe")
         except serial.SerialException as e:
-            print("RING ERROR: wipe {}".format(e))
+            logger.debug("Wipe %s", e)
 
     def checkStatus(self):
-        # TODO
+        logger.debug("Checking Main Ring...")
         pass
 
     def waitingForToF(self):

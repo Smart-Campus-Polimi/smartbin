@@ -1,4 +1,7 @@
 import serial
+import logging
+
+logger = logging.getLogger("DOOR")
 
 
 class DoorLed:
@@ -8,23 +11,24 @@ class DoorLed:
     def turnOff(self):
         try:
             self.ser.write(b'#D0!')
-            print("DOOR: turn off door lights")
+            logger.debug("Turn off lights")
         except serial.SerialException as e:
-            print("DOOR ERROR: turn off door lights {}".format(e))
+            logger.critical("Turn off lights %s", e)
 
     def turnOn(self):
         try:
             self.ser.write(b'#D1!')
-            print("DOOR: turn on door lights")
+            logger.debug("Turn on lights")
         except serial.SerialException as e:
-            print("DOOR ERROR: turn on door lights {}".format(e))
+            logger.critical("Turn on lights %s", e)
 
     def blink(self):
         try:
             self.ser.write(b'#D2!')
-            print("DOOR: door blink (error)")
+            logger.warning("Blink")
         except serial.SerialException as e:
-            print("DOOR ERROR: door blink {}".format(e))
+            logger.critical("Blink %s", e)
 
     def checkStatus(self):
+        logger.debug("Checking Door...")
         pass

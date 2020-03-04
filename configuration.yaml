@@ -3,12 +3,14 @@ version: 3.1
 bin_name: "bin0"
 threshold_tof: 240
 bin_height: 800.0
+log: 10 #10 debug, 20 info, 30 warning
+
 ## Environments
 ### EC2
 EC2:
   host: "54.154.170.192"
   destination_folder: "/home/ubuntu/vm1-node-service/raw_field_data"
-  destination_folder_testing: "/home/ubuntu/vm1-node-service/all_data"
+  destination_folder_debug: "/home/ubuntu/vm1-node-service/all_data"
   port: "22"
   user: "ubuntu"
   key: "vf-it-5g.pem"
@@ -18,7 +20,7 @@ EC2:
 MEC:
   host: "91.81.201.26"
   destination_folder: "/home/ubuntu/vm1-node-service/raw_field_data"
-  destination_folder_testing: "/home/ubuntu/new_service/vm1-node-service/all_data"
+  destination_folder_debug: "/home/ubuntu/new_service/vm1-node-service/all_data"
   port: "22"
   user: "ubuntu"
   key: "vf-it-5g.pem"
@@ -26,8 +28,8 @@ MEC:
 
 ## MQTT TOPICS
 mqtt:
-  topic_to_subscribe_to: "response/prediction/trash"
-  topic_fake: "response/prediction/fake"
+  greengrass_response: "response/prediction/trash/+" #greengrass or local
+  prediction_fake: "response/prediction/fake"
   fill_level_fake: "smartbin/fill_levels/fake"
   fill_level_topic: "smartbin/status/bin0"
 
@@ -56,13 +58,3 @@ gpio:
   blade:
     motor: 25
     magnet: 27
-
-
-#  motor:
-#    door: 17
-#    disk: 24
-#    blade: 25
-#  magnet:
-#    door: 18
-#    disk: 21
-#    blade: 27

@@ -1,10 +1,12 @@
 #!/usr/bin/python3
 import argparse
 import json
+import logging
 import signal
 import sys
 import threading
 import time
+import types
 from multiprocessing.pool import ThreadPool
 
 import RPi.GPIO as GPIO
@@ -24,6 +26,7 @@ import Servo
 import VL53L0X
 
 GPIO.setmode(GPIO.BCM)
+logger = logging.getLogger()
 
 CURRENT_STATUS = "INIT"
 OLD_STATUS = "NONE"
@@ -54,7 +57,7 @@ bin_json = {"bin_id": "bin0",
 
 ####### SIGNAL HANDLER ######
 def signal_handler(signal, frame):
-    print("Exit from smartbin!")
+    logger.info("Exit from smartbin!")
     doorLed.turnOff()
     ringLed.turnOff()
     matrixLed.turnOff()
@@ -66,21 +69,21 @@ def signal_handler(signal, frame):
 
 def arg_parse():
     parser = argparse.ArgumentParser(description='Smart bin raspberry pi.')
-    # parser.add_argument('-d', action='store_true')
+    parser.add_argument('-d', '--debug', action='store_true', help='Enable debug version')
     parser.add_argument('-e', '--environment', help='Specify the environment, default EC2', type=str, default="EC2")
 
     return parser.parse_args()
 
 
 def on_message(client, userdata, message):
-    print("receive message")
+    logger.debug("Receive MQTT message")
     response = str(message.payload.decode("utf-8"))
-    print(response)
+    logger.debug("Receive MQTT message: %s", response)
     if message.topic == CONFIG.mqtt.fill_level_fake:
         try:
             resp_parse = json.loads(response)
         except ValueError as e:
-            print("malformed json", e)
+            logger.error("MQTT malformed json", e)
 
         for key, val in resp_parse["levels"].items():
             bin_json["levels"][key] = val
@@ -99,7 +102,7 @@ def on_message(client, userdata, message):
 
 
 def on_connect(client, userdata, flags, rc):
-    print("Connected flags" + str(flags) + "result_code" + str(rc) + "client1_id")
+    logger.debug("Connected flags" + str(flags) + "result_code" + str(rc) + "client1_id")
     client.subscribe(CONFIG.mqtt.fill_level_fake)
 
 
@@ -141,7 +144,6 @@ def door_callback(channel):
         if (
                 CURRENT_STATUS == "PHOTO" or CURRENT_STATUS == "MOTORS" or CURRENT_STATUS == "PHOTO_DONE" or CURRENT_STATUS == "REKOGNITION" or CURRENT_STATUS == "FULL" or CURRENT_STATUS == "SEND_FILL_LEVEL" or CURRENT_STATUS == "CHECK_FULL"):
             pass
-        # print("ERROR!!!!!!")
         else:
             CURRENT_STATUS = "DOOR_OPEN"
 
@@ -157,19 +159,18 @@ def door_callback(channel):
                 timer_door.cancel()
 
 
-def photo_ready(my_cam):
-    print("Taking a picture after the timer")
+def photo_ready():
+    logger.debug("Taking a picture after the timer")
     global CURRENT_STATUS
     CURRENT_STATUS = "WAIT_CLOSE"
 
 
 def door_forgotten_open():
     # status!
-    print("Close the fockin door dude!")
+    logger.warning("Close the fockin door mate!")
     global isOpen
     doorLed.blink()
     while isOpen:
-        # doorLed.blink()
         pass
 
 
@@ -182,42 +183,73 @@ def read_bin_level(tof):
         return level
 
 
+def log_newline(self, how_many_lines=1):
+    # Switch handler, output a blank line
+    self.removeHandler(self.logging_out)
+    self.addHandler(self.blank_handler)
+    for i in range(how_many_lines):
+        self.info('')
+
+    # Switch back
+    self.removeHandler(self.blank_handler)
+    self.addHandler(self.logging_out)
+
+
+def create_logger(level):
+    logger.setLevel(level)
+    formatter = logging.Formatter(fmt='%(levelname)s - %(name)s: %(message)s')
+    logging_out = logging.StreamHandler(sys.stdout)
+    logging_out.setFormatter(formatter)
+    logging_out.setLevel(level)
+
+    blank_handler = logging.StreamHandler()
+    blank_handler.setLevel(level)
+    blank_handler.setFormatter(logging.Formatter(fmt=''))
+
+    logger.blank_handler = blank_handler
+    logger.logging_out = logging_out
+    logger.addHandler(logging_out)
+    logger.setLevel(level)
+    logger.newline = types.MethodType(log_newline, logger)
+
+    return logger
+
+
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
 
     args = arg_parse()
     environment = args.environment
+
     with open('configuration.yaml', 'r') as conf_yaml:
         CONFIG = munchify(yaml.load(conf_yaml, yaml.SafeLoader))
 
-    print(CONFIG)
     server_config = getattr(CONFIG, environment)
 
+    logger = create_logger(CONFIG.log)
+    if args.debug:
+        logger.debug("Debug enabled")
     # #### DOOR SETUP #### #
     GPIO.setup(CONFIG.gpio.door.magnet, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.add_event_detect(CONFIG.gpio.door.magnet, GPIO.BOTH, callback=door_callback)
 
-    print("STARTING SMARTBIN V{}...".format(CONFIG.version))
+    logger.info("STARTING SMARTBIN V%s...", CONFIG.version)
     CURRENT_STATUS = "INIT"
     setup = True
     while setup:
         if CURRENT_STATUS == "INIT":
-            print("\n### Current status: {}".format(CURRENT_STATUS))
+            logger.info("Current status: %s", CURRENT_STATUS)
             serialComm = SerialHandler.SerialHandler()
 
-            print("Checking Door...")
             doorLed = DoorLed.DoorLed(serialComm.getSerialPort())
             doorLed.checkStatus()
 
-            print("Checking Main Ring...")
             ringLed = RingLed.RingLed(serialComm.getSerialPort())
             ringLed.checkStatus()
 
-            print("Checking Matrix...")
             matrixLed = MatrixLed.MatrixLed(serialComm.getSerialPort())
             matrixLed.checkStatus()
 
-            print("Checking Rubbish Ring...")
             unsortedRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'U')
             plasticRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'P')
             paperRing = RingWasteLed.RingWasteLed(serialComm.getSerialPort(), 'C')
@@ -236,20 +268,19 @@ if __name__ == "__main__":
                 r.checkStatus()
 
             # MQTT
-            print("\n")
-            print("MQTT tentative connection...", end=' ')
+            logger.debug("MQTT tentative connection...")
             client = mqtt.Client()
             client.on_message = on_message
             client.on_connect = on_connect
             client.connect(server_config.host)
             client.loop_start()
-            print("DONE")
+            logger.debug("DONE")
 
             # reko = Rekognition.Rekognition(debug=True)
 
-            print("GG connection...", end=' ')
-            gg = GreenGrass.GreenGrass(CONFIG, environment)
-            print("DONE")
+            logger.debug("GG connection...")
+            gg = GreenGrass.GreenGrass(CONFIG, environment, debug=args.debug)
+            logger.debug("DONE")
 
             matrixLed.greenArrow()
 
@@ -262,7 +293,8 @@ if __name__ == "__main__":
             CURRENT_STATUS = "CHECK_INIT"
 
         elif CURRENT_STATUS == "CHECK_INIT":
-            print("\n### Current status: {}".format(CURRENT_STATUS))
+            logger.newline()
+            logger.info("Current status: %s", CURRENT_STATUS)
 
             errors = []
             if not camera.checkStatus():
@@ -287,7 +319,8 @@ if __name__ == "__main__":
                 CURRENT_STATUS = "INIT_ERROR"
 
         elif CURRENT_STATUS == "BOOT":
-            print("\n### Current status: {}".format(CURRENT_STATUS))
+            logger.newline()
+            logger.info("Current status: %s", CURRENT_STATUS)
 
             isOpen = GPIO.input(CONFIG.gpio.door.magnet)
             startUp = True
@@ -300,20 +333,20 @@ if __name__ == "__main__":
         # END BOOT
 
         elif CURRENT_STATUS == "DOOR_OPEN_ERROR":
-            print("\n### Current status: {}".format(CURRENT_STATUS))
+            logger.info("Current status: %s", CURRENT_STATUS)
             ringLed.staticRed()
             matrixLed.redCross()
             while isOpen:
                 if startUp:
-                    print("--> close the front door to boot the smartbin")
+                    logger.warning("Close the front door to boot the smartbin")
                     doorLed.blink()
                     startUp = False
 
             CURRENT_STATUS = "BOOT_DONE"
 
         elif CURRENT_STATUS == "BOOT_DONE":
-            print("\n### Current status: {}".format(CURRENT_STATUS))
-            print("--> boot...")
+            logger.newline()
+            logger.info("Current status: %s", CURRENT_STATUS)
             is_running = True
             setup = False
             ringLed.staticGreen()
@@ -324,21 +357,18 @@ if __name__ == "__main__":
             CURRENT_STATUS = "READ_FILL_LEVEL"
 
         elif CURRENT_STATUS == "INIT_ERROR":
-            print("GODDAMN!")
-            print("errors come from {}".format(errors))
-            print("restart")
+            logger.critical("GODDAMN!")
+            logger.warning("Errors by %s", errors)
+            logger.critical("restart")
             sys.exit()
 
     #### START SMARTBIN ####
     while is_running:
         if OLD_STATUS is not CURRENT_STATUS:
-            print("\n### Current status: {} - old {}".format(CURRENT_STATUS, OLD_STATUS))
+            logger.newline()
+            logger.info("Current status: %s - old %s", CURRENT_STATUS, OLD_STATUS)
 
         OLD_STATUS = CURRENT_STATUS
-        # if(CURRENT_STATUS != "IDLE"):
-        #	print("delete idle timer")
-        #	if(len(timer_idle) > 0):
-        #		timer_idle[0].cancel()
 
         ##### DOOR_OPEN ######
         if CURRENT_STATUS == "DOOR_OPEN":
@@ -354,17 +384,15 @@ if __name__ == "__main__":
             distance1 = tof1.get_distance()
             distance2 = tof2.get_distance()
 
-            # print(distance1, distance2)
-
             if distance1 < 0:
                 distance1 = 666
                 deadToF1 = True
-                print("tof1 dead, restart")
+                logger.warning("TOF 1 fails, restart")
 
             if distance2 < 0:
                 distance2 = 666
                 deadToF2 = True
-                print("tof2 dead, restart")
+                logger.warning("TOF 2 fails, restart")
 
             if deadToF1 or deadToF2:
                 CURRENT_STATUS = "WASTE_IN"
@@ -376,10 +404,10 @@ if __name__ == "__main__":
 
         ##### WASTE IN #####
         elif CURRENT_STATUS == "WASTE_IN":
-            print("Rubbish inside")
+            logger.info("Rubbish inside")
             camera.setCameraStatus(False)
             camera.erasePath()
-            timer_pic = threading.Timer(CONFIG.timer.photo, photo_ready, [camera])
+            timer_pic = threading.Timer(CONFIG.timer.photo, photo_ready)
             timer_pic.start()
             CURRENT_STATUS = "WAIT_CLOSE"
 
@@ -394,9 +422,9 @@ if __name__ == "__main__":
             for r in wasteRings:
                 r.turnOffRing()
             doorLed.turnOn()
-            print("Close the front door")
+            logger.debug("Close the front door")
             doorServo.closeLid()
-            print("Front door is closed: taking picture")
+            logger.info("Front door is closed: taking picture")
             timer_pic.cancel()
             camera.takePhoto()
             doorLed.turnOff()
@@ -420,11 +448,11 @@ if __name__ == "__main__":
 
             if aws_rekognition:
                 # waste_type_aws = reko.getLabels(camera.currentPath())
-                print("REKO: rubbish identified, it's: {}. Innit?".format(waste_type_aws))
+                logger.info("REKO: rubbish identified, it's: %s. Isn't it?", waste_type_aws)
 
             if greengrass:
                 waste_type_gg = async_result.get()
-                print("GG: rubbish identified, it's: {}. Innit?".format(waste_type_gg))
+                logger.info("GG: rubbish identified, it's: %s. Innit?", waste_type_gg)
 
             # waste_type = waste_type_aws
             if waste_type_gg == "TIMEOUT" or not greengrass:
@@ -435,7 +463,7 @@ if __name__ == "__main__":
                 waste_type = "UNSORTED"
             else:
                 waste_type = waste_type_gg
-                print("This is Greengrass")
+                logger.debug("Response from GreenGrass")
 
             if waste_type == "UNSORTED":
                 unsortedRing.setWaste(333)
@@ -470,14 +498,14 @@ if __name__ == "__main__":
 
         ##### MOTORS #####
         elif CURRENT_STATUS == "MOTORS":
-            print("Activate motors")
+            logger.debug("Activate motors")
             total_iteration += 1
 
             # go
             blade.move_blade(waste_type)
             time.sleep(.2)
             disk.moveDisk(waste_type)
-            print("Turning on the LEDs")
+            logger.debug("Turning on LEDs")
             ringLed.breatheGreen()
             time.sleep(1.8)
 
@@ -485,7 +513,7 @@ if __name__ == "__main__":
             disk.moveDisk("HOME")
             blade.move_blade("HOME")
             time.sleep(1.5)
-            print("Action done")
+            logger.debug("Action done")
 
             for r in wasteRings:
                 r.turnOffRing()
@@ -507,7 +535,7 @@ if __name__ == "__main__":
                     pass
 
             for key, val in bin_json["levels"].items():
-                print("{}: {}".format(key, val))
+                logger.debug("%s: %s", key, val)
 
             CURRENT_STATUS = "SEND_FILL_LEVEL"
 
@@ -531,7 +559,7 @@ if __name__ == "__main__":
             ringLed.staticGreen()
             matrixLed.greenArrow()
             doorServo.openLid()
-            print("this is the {} iteration".format(total_iteration))
+
             for key in bin_json["levels"].keys():
                 if key == "unsorted":
                     unsortedRing.setWaste(bin_json["levels"][key])
@@ -542,6 +570,9 @@ if __name__ == "__main__":
                 if key == "glass":
                     glassRing.setWaste(bin_json["levels"][key])
 
+            # TODO store stats
+            logger.info("End of the %s iteration", total_iteration)
+            logger.newline()
             CURRENT_STATUS = "IDLE"
             first_idle = True
 
@@ -567,13 +598,12 @@ if __name__ == "__main__":
         ##### IDLE #####
         elif CURRENT_STATUS == "IDLE":
             if first_idle:
-                # print("timer")
                 # timer_idle.append(threading.Timer(CONFIG.timer.idle, activate_wipe))
                 first_idle = False
                 if GPIO.input(CONFIG.gpio.door.magnet):
                     CURRENT_STATUS = "DOOR_OPEN"
             if deadToF1 and deadToF2:
-                # reset tof
+                logger.info("Resetting ToF")
                 doorServo.closeLid()
                 tof1.stop_ranging()
                 tof2.stop_ranging()
@@ -584,7 +614,7 @@ if __name__ == "__main__":
             else:
                 pass
 
-    print("EOF!")
+    logger.error("EOF!")
     tof2.stop_ranging()
     GPIO.output(CONFIG.gpio.tof2, GPIO.LOW)
     tof1.stop_ranging()

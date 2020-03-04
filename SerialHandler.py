@@ -1,4 +1,8 @@
+import logging
 import serial
+
+
+logger = logging.getLogger("SERIAL")
 
 
 class SerialHandler:
@@ -10,21 +14,21 @@ class SerialHandler:
             self.ser.flushInput()
             self.serialStatus = True
 
-            print("SERIAL: Open serial communication on serial port {}".format(self.ser.port))
+            logger.debug("Open serial communication on serial port %s", self.ser.port)
         else:
-            print("SERIAL: Impossible to open the serial communication")
+            logger.critical("Impossible to open the serial communication")
             self.serialStatus = False
 
     def _init_serial(self):
         try:
             self.ser = serial.Serial("/dev/ttyACM" + str(self.dev), 9600)
         except serial.SerialException as e:
-            print("SERIAL: Catch serial exception {}".format(e))
+            logger.error("%s", e)
             self.dev += 1
             if self.dev < 5:
                 self._init_serial()
             else:
-                print("SERIAL: NO ARDUINO FOUND! Error very very big")
+                logger.critical("NO arduino available")
                 self.ser = None
 
     def getSerialPort(self):
