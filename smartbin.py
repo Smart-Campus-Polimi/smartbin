@@ -596,8 +596,11 @@ if __name__ == "__main__":
                 # print("timer")
                 # timer_idle.append(threading.Timer(c.TIMER_IDLE, activate_wipe))
                 first_idle = False
+                
+                keyInput = input("\n***\n Waiting in IDLE... ")
+                if keyInput == "g":
 #                if (GPIO.input(c.DOOR_SENSOR)):
-#                    CURRENT_STATUS = "DOOR_OPEN"
+                    CURRENT_STATUS = "DOOR_OPEN"
             if (deadToF1 and deadToF2):
                 # reset tof
                 doorServo.closeLid()
