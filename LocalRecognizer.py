@@ -2,9 +2,10 @@ import os
 import random
 import torch
 import torch.nn as nn
+import numbers
 import torchvision.transforms.functional as TF
 from PIL import Image
-from torchvision import models
+from torchvision import models, transforms
 
 import ResumableTimer as rt
 
@@ -18,8 +19,34 @@ def pick_random_image():
     print('Choosing a {}'.format(FOLDER_PATH + _randImg))
     return FOLDER_PATH + _randImg
 
+class MyCrop(object):
+    def __init__(self, size):
+        if isinstance(size, numbers.Number):
+            self.size = (int(size), int(size))
+        else:
+            self.size = size
 
+    def __call__(self, img):
+        """
+        Args:
+            img (PIL Image): Image to be cropped.
+            
+            Returns:
+                PIL Image: Cropped image.
+                """
+        return TF.crop(img, 0, 48, self.size[0], self.size[1])
+    
+    def __repr__(self):
+        return self.__class__.__name__ + '(size={0})'.format(self.size)
 
+data_transforms = {
+    'test': transforms.Compose([
+        transforms.Resize(256),
+        MyCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize([0.3, 0.36, 0.58], [0.23, 0.24, 0.29])
+    ]),
+}
 
 def LocalRecognizer():
     def __init__(self):
@@ -41,19 +68,23 @@ def LocalRecognizer():
         
 
     def recognize(self, _image, _model):
-        x = TF.to_tensor(Image.open(_image))
+        x = data_transforms['test'](Image.open(_image))
         x.unsqueeze_(0)
         x = x.to(self.DEVICE)
         output = _model(x)
         _, pred = torch.max(output, 1)
-        return self.material_class_names[pred]
+        confidence = torch.max(torch.exp(torch.nn.functional.log_softmax(output, dim=1)))
+        print('It\'s a piece of {} with confidence {}'.format(self.material_class_names[pred]), confidence)
+        if confidence < 0.75:
+            return 'UNSORTED'
+        else:
+            return self.material_class_names[pred]
 
 
     def start_recognizer(self, image, model):
         self.elapsed_time.start()
         result = recognize(image, model)
         
-        print('It\'s a piece of {}'.format(result))
         self.elapsed_time.pause()
         total_time = self.elapsed_time.get_actual_time()
         print('Test completed in {:.3f}s'.format(total_time))

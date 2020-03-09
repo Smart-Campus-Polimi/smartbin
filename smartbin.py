@@ -27,6 +27,7 @@ CURRENT_STATUS = "INIT"
 OLD_STATUS = "NONE"
 
 debugMode = True
+
 greengrass = False
 aws_rekognition = False
 local_recognition = True
@@ -431,29 +432,30 @@ if __name__ == "__main__":
 
             if (aws_rekognition):
                 # waste_type_aws = reko.getLabels(camera.currentPath())
+                # if(waste_type_aws is not None):
+                #   waste_type = waste_type_aws                
                 print("REKO: rubbish identified, it's: {}. Innit?".format(waste_type_aws))
 
  #           if (greengrass):
  #               waste_type_gg = async_result.get()
+#                 waste_type = waste_type_gg
+
                 print("GG: rubbish identified, it's: {}. Innit?".format(waste_type_gg))
             
             if (local_recognition):
                 async_result = pool.apply_async(LRec.getLabels, (camera.currentPath(),))
                 waste_type_lrec = async_result.get()
+                waste_type = waste_type_lrec
                 print("LRec: rubbish identified, it's: {}. Innit?".format(waste_type_lrec))
                 
             # waste_type = waste_type_aws
-            if (waste_type_gg == "TIMEOUT" or not greengrass):
-                waste_type = waste_type_lrec
-                print("this is Local Recognition Algorithm")
+            if (greengrass and waste_type_gg == "TIMEOUT"):
+                print("Greengrass got TIMEOUT")
                 # if(waste_type_aws is not None):
                 # waste_type = waste_type_aws
                 # print("this is AWS")
                 # else:
-#                waste_type = "UNSORTED"
-            else:
-                waste_type = waste_type_gg
-                print("This is Greengrass")
+                waste_type = "UNSORTED"
 
             if (waste_type == "UNSORTED"):
 #                unsortedRing.setWaste(333)
@@ -607,6 +609,7 @@ if __name__ == "__main__":
                 doorServo.openLid()
             else:
                 pass
+            
 
     print("EOF!")
 #    tof2.stop_ranging()
