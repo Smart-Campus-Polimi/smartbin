@@ -12,13 +12,6 @@ import ResumableTimer as rt
 MODEL_PATH = 'trained_model/tr_model.pth'
 FOLDER_PATH = 'AllFotos/'
 
-
-def pick_random_image():
-    _randFolder = random.choice(os.listdir(FOLDER_PATH)) + "/"
-    _randImg = _randFolder + random.choice(os.listdir(FOLDER_PATH + _randFolder))
-    print('Choosing a {}'.format(FOLDER_PATH + _randImg))
-    return FOLDER_PATH + _randImg
-
 class MyCrop(object):
     def __init__(self, size):
         if isinstance(size, numbers.Number):
@@ -45,8 +38,14 @@ data_transforms = {
         MyCrop(224),
         transforms.ToTensor(),
         transforms.Normalize([0.3, 0.36, 0.58], [0.23, 0.24, 0.29])
-    ]),
+    ])
 }
+    
+def pick_random_image():
+    _randFolder = random.choice(os.listdir(FOLDER_PATH)) + "/"
+    _randImg = _randFolder + random.choice(os.listdir(FOLDER_PATH + _randFolder))
+    print('Choosing a {}'.format(FOLDER_PATH + _randImg))
+    return FOLDER_PATH + _randImg
 
 def LocalRecognizer():
     def __init__(self):
